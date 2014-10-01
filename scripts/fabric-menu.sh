@@ -4,6 +4,26 @@ set -e
 # Source the functions
 . fabric-functions.sh
 
+BaseDir=${0%/*}
+DATE=`date +%m%d%Y-%H%M%S`
+LOGS=${BaseDir}/../logs
+EAP_Scripts=${BaseDir};
+
+trap bashtrap INT
+bashtrap()
+{
+	kill -9 $tailpid	
+	exit;
+}
+
+# Logging
+logFile=$LOGS/fabric-menu-${DATE}.log
+cat /dev/null > $logFile   # create it so that tail doesn't complain
+tail -f $logFile &
+tailpid=$!
+exec >> $logFile
+exec 2>&1
+
 returnToMenu(){
   echo -e "\n\n"
   REPLY=""
