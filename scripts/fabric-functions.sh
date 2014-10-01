@@ -396,9 +396,53 @@ camelRouteStart(){
     select route in "${route_list[@]}"
     do
       echo "Starting route: $route"
+      echo "not yet implemented"
       break
     done
   else
     echo "No routes found in container"
   fi
+}
+
+containerUpgrade(){
+
+  # only allow ensemble containers as it doesn't make sense to upgrade an ensemble container
+  chooseNonEnsembleContainer
+  
+  # find current version of the container
+  curVersion=`$FUSE_CLIENT_SCRIPT "container-info $chosen_container" | grep "Version:" | awk '{print $2}'`
+  
+  # find all versions available in fabric
+  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
+  availableVersionsArray=($availableVersions)
+  
+  # make list with only newer versions as you cannot upgrade to older version
+  declare -a newerVersions
+  index=1
+  for i in "${availableVersionsArray[@]}"
+  do
+    :
+    # compare available version to the version on the container
+    if awk "BEGIN {exit !($i > $curVersion)}"
+    then
+      newerVersions[$index]=$i
+      index=$[$index+1]
+    fi
+  done
+  
+  if [ $index -gt 1 ];then # there are newer versions than that found on container available
+    echo "Current version: $curVersion"
+    echo "Select new version:"
+    select version in "${newerVersions[@]}"
+    do
+      $FUSE_CLIENT_SCRIPT "fabric:container-upgrade $version $chosen_container"
+      waitUntilProvisioned $chosen_container
+      break
+    done
+  else # only older versions are found
+    echo "No newer version found. Versions available:"
+    printf "%s " "${availableVersionsArray[@]}"
+  fi
+  
+
 }

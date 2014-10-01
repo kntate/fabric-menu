@@ -1,13 +1,13 @@
 # Kill the script if there is an error
 set -e
 
-# Source the functions
-. fabric-functions.sh
-
 BaseDir=${0%/*}
 DATE=`date +%m%d%Y-%H%M%S`
 LOGS=${BaseDir}/../logs
 EAP_Scripts=${BaseDir};
+
+# Source the functions
+. $BaseDir/fabric-functions.sh
 
 trap bashtrap INT
 bashtrap()
@@ -18,8 +18,8 @@ bashtrap()
 
 # Logging
 logFile=$LOGS/fabric-menu-${DATE}.log
-cat /dev/null > $logFile   # create it so that tail doesn't complain
-tail -f $logFile &
+cat /dev/null > $logFile
+tail -f $logFile | grep -v "presented unverified key:" &
 tailpid=$!
 exec >> $logFile
 exec 2>&1
@@ -30,7 +30,7 @@ returnToMenu(){
   echo "Make another selection."
 }
 
-select menu1 in "installEnsemble" "installApp" "startContainer" "stopContainer" "addProfile" "removeProfile" "containerStatus" "camelRouteStart" "activeMQStats" "containerConnect" "Exit"
+select menu1 in "installEnsemble" "installApp" "containerUpgrade" "startContainer" "stopContainer" "addProfile" "removeProfile" "containerStatus" "camelRouteStart" "activeMQStats" "containerConnect" "Exit"
 do
     echo "$menu1";
     case $menu1 in
@@ -40,6 +40,10 @@ do
 	;;
     "installApp")
 	installApp
+	returnToMenu
+	;;	
+    "containerUpgrade")
+	containerUpgrade
 	returnToMenu
 	;;	
     "startContainer")
