@@ -308,7 +308,7 @@ containerConnect(){
 }
 
 activeMQStats(){
-  chooseContainer
+  chooseNonEnsembleContainer
   if [ $chosen_container == "ALL" ]; then
     for i in "${container_array[@]}"
     do
@@ -501,7 +501,7 @@ upgradeSingleContainer(){
       break
     done
   else # only older versions are found
-    echo "No newer version found. Versions available:"
+    echo "No newer version than $curVersions found. Versions available:"
     printf "%s " "${availableVersionsArray[@]}"
   fi
 }
@@ -586,5 +586,25 @@ rollbackSingleContainer(){
   else # only older versions are found
     echo "No version older than $curVersion found. Versions available:"
     printf "%s " "${availableVersionsArray[@]}"
+  fi
+}
+
+environmentInfo(){
+  echo "Detailed info? (Default:n) [y/n]"
+  read detailed
+  detailed=${detailed:-n}
+  $FUSE_CLIENT_SCRIPT "fabric:container-list"
+  
+  if [ $detailed == "y" ]; then
+    getAllContainerList
+    for container in "${container_array[@]}"
+    do
+      :
+      if [ $container == "root*" ]; then
+	container="root"
+      fi
+      echo "Detailed info for container: $container"
+      $FUSE_CLIENT_SCRIPT "fabric:container-info $container"
+    done
   fi
 }
