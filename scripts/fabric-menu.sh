@@ -30,7 +30,7 @@ returnToMenu(){
   echo "Make another selection."
 }
 
-select menu1 in "installEnsemble" "installApp" "containerUpgrade" "startContainer" "stopContainer" "addProfile" "removeProfile" "containerStatus" "camelRouteStart" "activeMQStats" "containerConnect" "Exit"
+select menu1 in "installEnsemble" "installApp" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "containerStatus" "camelRouteStart" "activeMQStats" "containerConnect" "Exit"
 do
     echo "$menu1";
     case $menu1 in
@@ -46,6 +46,10 @@ do
 	containerUpgrade
 	returnToMenu
 	;;	
+    "containerRollback")
+	containerRollback
+	returnToMenu
+	;;
     "startContainer")
 	startContainer
 	returnToMenu

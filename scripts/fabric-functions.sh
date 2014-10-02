@@ -404,8 +404,7 @@ camelRouteStart(){
 
 containerUpgrade(){
 
-  # only allow ensemble containers as it doesn't make sense to upgrade an ensemble container
-  chooseNonEnsembleContainer
+  chooseContainer
   
   if [ $chosen_container == "ALL" ]; then
     upgradeAllContainers
@@ -413,9 +412,6 @@ containerUpgrade(){
     upgradeSingleContainer
   fi
   
-
-  
-
 }
 
 upgradeAllContainers(){
@@ -426,7 +422,15 @@ upgradeAllContainers(){
   echo "What version should all containers be upgraded to?"
   select version in "${availableVersionsArray[@]}"
   do
-    $FUSE_CLIENT_SCRIPT "fabric:container-upgrade --all $version"
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-upgrade --all $version"`
+    echo "$result"
+    
+    # break out if an error occurred
+    if [[ $result == Error* ]] ; then
+      echo "Error performing container upgrade."      
+      break
+    fi
+        
     echo "Waiting for provisioning"
     $FUSE_CLIENT_SCRIPT "fabric:wait-for-provisioning"
     
@@ -460,13 +464,13 @@ upgradeSingleContainer(){
   # make list with only newer versions as you cannot upgrade to older version
   declare -a newerVersions
   index=1
-  for i in "${availableVersionsArray[@]}"
+  for avail in "${availableVersionsArray[@]}"
   do
     :
     # compare available version to the version on the container
-    if awk "BEGIN {exit !($i > $curVersion)}"
+    if awk "BEGIN {exit !($avail > $curVersion)}"
     then
-      newerVersions[$index]=$i
+      newerVersions[$index]=$avail
       index=$[$index+1]
     fi
   done
@@ -476,7 +480,15 @@ upgradeSingleContainer(){
     echo "Select new version:"
     select version in "${newerVersions[@]}"
     do
-      $FUSE_CLIENT_SCRIPT "fabric:container-upgrade $version $chosen_container"
+      result=`$FUSE_CLIENT_SCRIPT "fabric:container-upgrade $version $chosen_container"`
+      echo "$result"
+    
+      # break out if an error occurred
+      if [[ $result == Error* ]] ; then
+	echo "Error performing container upgrade."      
+	break
+      fi
+      
       waitUntilProvisioned $chosen_container
       echo "Accept changes? (Default:y) [y/n]:"
       read acceptChanges  
@@ -490,6 +502,89 @@ upgradeSingleContainer(){
     done
   else # only older versions are found
     echo "No newer version found. Versions available:"
+    printf "%s " "${availableVersionsArray[@]}"
+  fi
+}
+
+containerRollback(){
+
+  chooseContainer
+  
+  if [ $chosen_container == "ALL" ]; then
+    rollbackAllContainers
+  else
+    rollbackSingleContainer
+  fi
+  
+}
+
+rollbackAllContainers(){
+  # find all versions available in fabric
+  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
+  availableVersionsArray=($availableVersions)
+    
+  echo "What version should all containers be rolled back to?"
+  select version in "${availableVersionsArray[@]}"
+  do
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-rollback --all $version"`
+    echo "$result"
+    
+    # break out if an error occurred
+    if [[ $result == Error* ]] ; then
+      echo "Error performing container rollback."      
+      break
+    fi
+    
+    # rollback was successful if we got here, wait for provisioning
+    echo "Waiting for provisioning"
+    $FUSE_CLIENT_SCRIPT "fabric:wait-for-provisioning"
+        
+    break
+  done
+}
+
+rollbackSingleContainer(){
+  # find current version of the container
+  curVersion=`$FUSE_CLIENT_SCRIPT "container-info $chosen_container" | grep "Version:" | awk '{print $2}'`
+  
+  # find all versions available in fabric
+  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
+  availableVersionsArray=($availableVersions)
+  
+  # make list with only older versions as you cannot rollback to a newer version
+  declare -a olderVersions
+  index=1
+  for avail in "${availableVersionsArray[@]}"
+  do
+    :
+    # compare available version to the version on the container
+    if awk "BEGIN {exit !($avail < $curVersion)}"
+    then
+      olderVersions[$index]=$avail
+      index=$[$index+1]
+    fi
+  done
+  
+  if [ $index -gt 1 ];then # there are older versions than that found on container available
+    echo "Current version: $curVersion"
+    echo "Select new version:"
+    select version in "${olderVersions[@]}"
+    do
+      result=`$FUSE_CLIENT_SCRIPT "fabric:container-rollback $version $chosen_container"`
+      echo "$result"
+    
+      # break out if an error occurred
+      if [[ $result == Error* ]] ; then
+	echo "Error performing container rollback."      
+	break
+      fi
+      
+      waitUntilProvisioned $chosen_container
+            
+      break
+    done
+  else # only older versions are found
+    echo "No version older than $curVersion found. Versions available:"
     printf "%s " "${availableVersionsArray[@]}"
   fi
 }
