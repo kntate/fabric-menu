@@ -121,7 +121,7 @@ getAmqStatsForContainer(){
 containerStatus(){
   echo "Include feature stats? (Default:n) [y/n]"
   read includeFeatures  
-  includeFeatures=${includeFeatures:-Richard}
+  includeFeatures=${includeFeatures:n}
 
   chooseContainer
   if [ $chosen_container == "ALL" ]; then
@@ -304,9 +304,7 @@ startupContainer(){
 
 containerConnect(){
   chooseContainer
-
-  $FUSE_CLIENT_SCRIPT fabric:container-connect $chosen_container
-  
+  $FUSE_CLIENT_SCRIPT fabric:container-connect $chosen_container  
 }
 
 activeMQStats(){
@@ -409,6 +407,49 @@ containerUpgrade(){
   # only allow ensemble containers as it doesn't make sense to upgrade an ensemble container
   chooseNonEnsembleContainer
   
+  if [ $chosen_container == "ALL" ]; then
+    upgradeAllContainers
+  else
+    upgradeSingleContainer
+  fi
+  
+
+  
+
+}
+
+upgradeAllContainers(){
+  # find all versions available in fabric
+  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
+  availableVersionsArray=($availableVersions)
+    
+  echo "What version should all containers be upgraded to?"
+  select version in "${availableVersionsArray[@]}"
+  do
+    $FUSE_CLIENT_SCRIPT "fabric:container-upgrade --all $version"
+    echo "Waiting for provisioning"
+    $FUSE_CLIENT_SCRIPT "fabric:wait-for-provisioning"
+    
+    echo "Accept changes? (Default:y) [y/n]:"
+    read acceptChanges  
+    acceptChanges=${acceptChanges:-y}
+    if [ $acceptChanges == "n" ]; then
+      echo "What version should all containers be rolled back to?"
+      select rollbackVersion in "${availableVersionsArray[@]}"
+      do
+	$FUSE_CLIENT_SCRIPT "fabric:container-rollback --all $rollbackVersion"
+	echo "Waiting for provisioning"
+	$FUSE_CLIENT_SCRIPT "fabric:wait-for-provisioning"
+	
+	break
+      done
+    fi
+    
+    break
+  done
+}
+
+upgradeSingleContainer(){
   # find current version of the container
   curVersion=`$FUSE_CLIENT_SCRIPT "container-info $chosen_container" | grep "Version:" | awk '{print $2}'`
   
@@ -437,12 +478,18 @@ containerUpgrade(){
     do
       $FUSE_CLIENT_SCRIPT "fabric:container-upgrade $version $chosen_container"
       waitUntilProvisioned $chosen_container
+      echo "Accept changes? (Default:y) [y/n]:"
+      read acceptChanges  
+      acceptChanges=${acceptChanges:-y}
+      if [ $acceptChanges == "n" ]; then
+	$FUSE_CLIENT_SCRIPT "fabric:container-rollback $curVersion $chosen_container"
+	waitUntilProvisioned $chosen_container
+      fi
+      
       break
     done
   else # only older versions are found
     echo "No newer version found. Versions available:"
     printf "%s " "${availableVersionsArray[@]}"
   fi
-  
-
 }
