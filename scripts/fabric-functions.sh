@@ -104,7 +104,7 @@ getAllContainerList(){
   filter=$1
   output=`$FUSE_CLIENT_SCRIPT fabric:container-list | egrep -v "provision status$filter" | awk '{print $1}'`
   echo -e $output
-  if [[ $output == Error* ]] || [[ $output == Command* ]] ; then
+  if [[ $output == Error* ]] || [[ $output == Command* ]] || [[ $output == Failed* ]]; then
     echo "Error obtaining fabric container list. Error msg:"
     echo -e $output
     echo "Has fabric:create been run on the root?"
