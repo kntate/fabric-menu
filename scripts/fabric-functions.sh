@@ -666,11 +666,20 @@ sshToContainer(){
   read username
   username=${username:-$first_profile}
   
-  echo "Enter command to run"
-  read command
+  run_again="y"
   
-  echo "executing: ssh $username@$host $command"
-  echo "output:"
-  
-  ssh $username@$host $command
+  while [ $run_again == "y" ];
+  do
+    echo "Enter command to run:"
+    read command
+    
+    echo "executing: ssh $username@$host $command"
+    echo "output:"
+    
+    ssh $username@$host $command
+    
+    echo "Run another command? [y/n]"
+    read run_again
+    
+  done
 }
