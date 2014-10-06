@@ -30,7 +30,7 @@ returnToMenu(){
   echo "Make another selection."
 }
 
-select menu1 in "installEnsemble" "installApp" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "environmentInfo" "containerStatus" "camelRouteStart" "activeMQStats" "containerConnect" "Exit"
+select menu1 in "installEnsemble" "installApp" "sshToContainer" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "environmentInfo" "containerStatus" "camelRouteStart" "activeMQStats" "containerConnect" "Exit"
 do
     echo "$menu1";
     case $menu1 in
@@ -40,6 +40,10 @@ do
 	;;
     "installApp")
 	installApp
+	returnToMenu
+	;;	
+    "sshToContainer")
+	sshToContainer
 	returnToMenu
 	;;	
     "containerUpgrade")

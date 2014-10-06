@@ -55,31 +55,68 @@ waitUntilProvisioned(){
 readContainers(){
   
   num_rows=$1
-  num_columns=2
+  num_columns=2  
+  
+  if [ -z $profile ]; then
+    # if no profile then it is an ensemble install
+    profile="ensemble"
+    default_container_name_prefix="ensemble_container_"
+    default_user="fabric8"
+  else
+    # add underscore to profile name
+    default_container_name_prefix=$profile"_"
+    default_user=$profile
+  fi
 
+  confirm_message="The following containers have been input with profile: $profile"
   for ((i=1;i<=num_rows;i++)) do
       
-      echo "Enter container $i hostname"
+      echo "Enter container $i hostname:"
       read hostname
-      echo "Enter container $i container_name"
+      echo "Enter container $i container_name:" 
+      echo "Default: [$default_container_name_prefix$i]"
       read container_name
+      container_name=${container_name:-$default_container_name_prefix$i}
+      echo "Enter container $i username:"
+      echo "Default: [$default_user]"
+      read username
+      username=${username:-$default_user}
+      
+      confirm_message="$confirm_message\n\tContainer $i, hostname: $hostname, container_name: $container_name, username: $username"
       
       server_list[$i]="$hostname $container_name"
       
   done
-
+  confirm_message="$confirm_message\nAre these values correct? [y/n]"
+  echo -e $confirm_message
+  read confirm
+  
+  if [ $confirm == "n" ]; then
+    readContainers $num_rows
+  fi
+  
+  echo -e $confirm_message
+   
 }
 
 getAllContainerList(){
   echo "Retrieving container list from Fabric"
   filter=$1
   output=`$FUSE_CLIENT_SCRIPT fabric:container-list | egrep -v "provision status$filter" | awk '{print $1}'`
+  echo -e $output
+  if [[ $output == Error* ]] || [[ $output == Command* ]] ; then
+    echo "Error obtaining fabric container list. Error msg:"
+    echo -e $output
+    echo "Has fabric:create been run on the root?"
+    exit
+  fi
   container_array=($output)
 }
 
 chooseContainer(){
-  filter=$1
-  getAllContainerList $filter
+  exclude_all=$1
+  
+  getAllContainerList $choose_filter
   
   declare -a choice_list
   
@@ -87,6 +124,7 @@ chooseContainer(){
   for i in "${container_array[@]}"
   do
     :
+    # remove '*' character from root
     if [ $i == "root*" ]; then
 	container_array[$index]="root"
     fi
@@ -94,8 +132,8 @@ chooseContainer(){
     index=$[$index+1]
   done
   
-  # Add all choice if there is more than one option
-  if [ $index -gt 2 ]; then
+  # Add all choice if there is more than one option and told to include the all option
+  if [ $index -gt 2 ] && [ -z $exclude_all ]; then
       choice_list[$index]="ALL"
   fi  
   
@@ -109,7 +147,8 @@ chooseContainer(){
 }
 
 chooseNonEnsembleContainer(){
-  chooseContainer "|ensemble"
+  choose_filter="|ensemble"
+  chooseContainer 
 }
 
 getAmqStatsForContainer(){
@@ -170,10 +209,13 @@ installEnsemble(){
     
   done
   
-  echo $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+  if [ $DEBUG ]; then
+    echo $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+  fi
+  echo "Creating ensemble"
   $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
 
-  sleep 2
+  sleep 10
   echo "Ensemble created:"
   $FUSE_CLIENT_SCRIPT fabric:ensemble-list
 
@@ -226,7 +268,7 @@ shutdownContainer(){
   container=$1
   $FUSE_CLIENT_SCRIPT container-stop $container
   
-  i="1"
+  retry_count="1"
   
   # wait for the container to show as shutdownContainer
   echo "Waiting for container to shutdown"
@@ -240,9 +282,9 @@ shutdownContainer(){
       break;
     fi
     
-    i=$[$i+1]
+    retry_count=$[$retry_count+1]
     
-    if [ $i -gt 25 ]; then
+    if [ $retry_count -gt 25 ]; then
       echo "Timeout waiting for container: $container to shutdown"
       echo "Container info: "
       $FUSE_CLIENT_SCRIPT container-info $container
@@ -327,10 +369,10 @@ addProfile(){
   read profile
   
   if [ $chosen_container == "ALL" ]; then
-    for i in "${container_array[@]}"
+    for container in "${container_array[@]}"
     do
       :
-      addProfileToContainer $i $profile
+      addProfileToContainer $container $profile
     done
   else
       addProfileToContainer $chosen_container $profile
@@ -608,3 +650,19 @@ environmentInfo(){
     done
   fi
 }
+
+sshToContainer(){
+  chooseContainer "exclude_all"
+  host=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container | grep "Network Address:" | awk '{print $3}'`
+  echo "Enter OS username for host $host"
+  read username
+  
+  echo "Enter command to run"
+  read command
+  
+  echo "executing: ssh $username@$host $command"
+  echo "output:"
+  
+  ssh $username@$host $command
+}
+
