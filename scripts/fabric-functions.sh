@@ -201,9 +201,9 @@ installEnsemble(){
     ensemble_list="$ensemble_list $container"
     echo "Installing container: $container to server: $server"
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --user $FUSE_USER $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $FUSE_USER $container"
     fi
-    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --user $FUSE_USER $container"
+    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $FUSE_USER $container"
 
     waitUntilProvisioned $container
     
@@ -237,9 +237,9 @@ installApp(){
     container=`echo ${server_list[$j]} | awk '{print $2}'`
     echo "Installing container: $container to server: $server with profile: $profile" 
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --profile $profile --user $FUSE_USER $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --profile $profile --user $FUSE_USER $container"
     fi
-    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --profile $profile --user $FUSE_USER $container"
+    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  --profile $profile --user $FUSE_USER $container"
 
     waitUntilProvisioned $container
     
@@ -654,8 +654,17 @@ environmentInfo(){
 sshToContainer(){
   chooseContainer "exclude_all"
   host=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container | grep "Network Address:" | awk '{print $3}'`
+  
+  first_profile=`$FUSE_CLIENT_SCRIPT fabric:container-list | grep -v "provision status" | grep $chosen_container | awk '{print $4}' | sed 's/,$//'`
+  # The container is an ensemble
+  if [ $first_profile == "default" ]; then
+    first_profile="fabric8"
+  fi
+  
   echo "Enter OS username for host $host"
+  echo "Default [$first_profile]"
   read username
+  username=${username:-$first_profile}
   
   echo "Enter command to run"
   read command
@@ -665,4 +674,3 @@ sshToContainer(){
   
   ssh $username@$host $command
 }
-

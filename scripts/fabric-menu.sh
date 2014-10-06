@@ -9,6 +9,10 @@ EAP_Scripts=${BaseDir};
 # Source the functions
 . $BaseDir/fabric-functions.sh
 
+# Source the properties
+. $BaseDir/../properties/container-install.properties
+
+
 trap bashtrap INT
 bashtrap()
 {
