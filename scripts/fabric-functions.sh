@@ -81,10 +81,12 @@ readContainers(){
       echo "Default: [$default_user]"
       read username
       username=${username:-$default_user}
+      echo "Enter password for $username"
+      read password
       
-      confirm_message="$confirm_message\n\tContainer $i, hostname: $hostname, container_name: $container_name, username: $username"
+      confirm_message="$confirm_message\n\tContainer $i, hostname: $hostname, container_name: $container_name, username: $username, password: $password"
       
-      server_list[$i]="$hostname $container_name"
+      server_list[$i]="$hostname $container_name $username $password"
       
   done
   confirm_message="$confirm_message\nAre these values correct? [y/n]"
@@ -94,8 +96,6 @@ readContainers(){
   if [ $confirm == "n" ]; then
     readContainers $num_rows
   fi
-  
-  echo -e $confirm_message
    
 }
 
@@ -198,12 +198,14 @@ installEnsemble(){
 
     server=`echo ${server_list[$j]} | awk '{print $1}'`
     container=`echo ${server_list[$j]} | awk '{print $2}'`
+    username=`echo ${server_list[$j]} | awk '{print $3}'`
+    password=`echo ${server_list[$j]} | awk '{print $4}'`
     ensemble_list="$ensemble_list $container"
     echo "Installing container: $container to server: $server"
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $FUSE_USER $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $password $container"
     fi
-    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $FUSE_USER $container"
+    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $password $container"
 
     waitUntilProvisioned $container
     
@@ -235,11 +237,13 @@ installApp(){
 
     server=`echo ${server_list[$j]} | awk '{print $1}'`
     container=`echo ${server_list[$j]} | awk '{print $2}'`
+    username=`echo ${server_list[$j]} | awk '{print $3}'`
+    password=`echo ${server_list[$j]} | awk '{print $4}'`
     echo "Installing container: $container to server: $server with profile: $profile" 
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --profile $profile --user $FUSE_USER $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --profile $profile --user $username --password $password $container"
     fi
-    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  --profile $profile --user $FUSE_USER $container"
+    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  --profile $profile --user $username --password $password $container"
 
     waitUntilProvisioned $container
     
