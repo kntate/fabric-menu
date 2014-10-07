@@ -133,7 +133,7 @@ chooseContainer(){
   done
   
   # Add all choice if there is more than one option and told to include the all option
-  if [ $index -gt 2 ] && [ -z $exclude_all ]; then
+  if [ $index -gt 1 ] && [ -z $exclude_all ]; then
       choice_list[$index]="ALL"
   fi  
   
@@ -266,7 +266,7 @@ stopContainer(){
 shutdownContainer(){
   
   container=$1
-  $FUSE_CLIENT_SCRIPT container-stop $container
+  $FUSE_CLIENT_SCRIPT "container-stop --force $container"
   
   retry_count="1"
   

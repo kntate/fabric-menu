@@ -34,10 +34,10 @@ returnToMenu(){
   echo "Make another selection."
 }
 
-select menu1 in "installEnsemble" "installApp" "sshToContainer" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "environmentInfo" "containerStatus" "camelRouteStart" "activeMQStats" "containerConnect" "Exit"
+select root_menu in "installEnsemble" "installApp" "administration" "Exit"
 do
-    echo "$menu1";
-    case $menu1 in
+    echo "$root_menu";
+    case $root_menu in
     "installEnsemble")
 	installEnsemble
 	returnToMenu
@@ -45,55 +45,71 @@ do
     "installApp")
 	installApp
 	returnToMenu
-	;;	
-    "sshToContainer")
-	sshToContainer
-	returnToMenu
-	;;	
-    "containerUpgrade")
-	containerUpgrade
-	returnToMenu
-	;;	
-    "containerRollback")
-	containerRollback
-	returnToMenu
 	;;
-    "startContainer")
-	startContainer
+    "administration")
+	select admin_menu in "sshToContainer" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "environmentInfo" "containerStatus" "camelRouteStart" "activeMQStats" "containerConnect" "rootMenu"
+	do
+	  echo "$admin_menu";
+	  case $admin_menu in	    
+	  "sshToContainer")
+		sshToContainer
+		returnToMenu
+		;;	
+	    "containerUpgrade")
+		containerUpgrade
+		returnToMenu
+		;;	
+	    "containerRollback")
+		containerRollback
+		returnToMenu
+		;;
+	    "startContainer")
+		startContainer
+		returnToMenu
+		;;	
+	    "stopContainer")
+		stopContainer
+		returnToMenu
+		;;		
+	    "addProfile")
+		addProfile
+		returnToMenu
+		;;
+	    "environmentInfo")
+		environmentInfo
+		returnToMenu
+		;;
+	    "removeProfile")
+		removeProfile
+		returnToMenu
+		;;	
+	    "containerStatus")
+		containerStatus
+		returnToMenu
+		;;
+	    "camelRouteStart")
+		camelRouteStart
+		returnToMenu
+		;;	
+	    "activeMQStats")
+		activeMQStats
+		returnToMenu
+		;;	
+	    "containerConnect")
+		containerConnect
+		returnToMenu
+		;;			  
+	  "rootMenu")
+	      break;
+	      ;;
+	  *)
+	      echo "That is not a valid choice!  Input a number."
+	      ;;	
+	  esac	  
+	done
 	returnToMenu
 	;;	
-    "stopContainer")
-	stopContainer
-	returnToMenu
-	;;		
-    "addProfile")
-	addProfile
-	returnToMenu
-	;;
-    "environmentInfo")
-	environmentInfo
-	returnToMenu
-	;;
-    "removeProfile")
-	removeProfile
-	returnToMenu
-	;;	
-    "containerStatus")
-	containerStatus
-	returnToMenu
-	;;
-    "camelRouteStart")
-	camelRouteStart
-	returnToMenu
-	;;	
-    "activeMQStats")
-	activeMQStats
-	returnToMenu
-	;;	
-    "containerConnect")
-	containerConnect
-	returnToMenu
-	;;		
+ 
     "Exit")
 	break;
 	;;
