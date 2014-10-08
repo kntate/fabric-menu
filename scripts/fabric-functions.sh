@@ -1,7 +1,7 @@
 DEBUG=true
 
 if [ -z $FUSE_HOME ]; then
-  FUSE_HOME=/home/kevin/software/fuse/jboss-fuse-6.1.0.redhat-379
+  FUSE_HOME=$fuse_home_default
 fi
 FUSE_BIN=$FUSE_HOME/bin
 FUSE_CLIENT_SCRIPT=$FUSE_BIN/client

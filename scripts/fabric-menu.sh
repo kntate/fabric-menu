@@ -6,12 +6,11 @@ DATE=`date +%m%d%Y-%H%M%S`
 LOGS=${BaseDir}/../logs
 EAP_Scripts=${BaseDir};
 
-# Source the functions
-. $BaseDir/fabric-functions.sh
-
 # Source the properties
 . $BaseDir/../properties/container-install.properties
 
+# Source the functions
+. $BaseDir/fabric-functions.sh
 
 trap bashtrap INT
 bashtrap()
