@@ -460,7 +460,7 @@ camelRouteStart(){
   chooseNonEnsembleContainer
   
   # TODO - only select stopped routes
-  output=`$FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-list | grep -v Context | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
+  output=`$FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
   echo output: $output
   route_list=($output)
   
