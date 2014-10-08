@@ -476,7 +476,7 @@ removeProfileFromContainer(){
 }
 
 camelRouteStart(){
-  chooseNonEnsembleContainer
+  chooseNonEnsembleContainer "exclude_all"
   
   # TODO - only select stopped routes
   output=`$FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
@@ -486,11 +486,57 @@ camelRouteStart(){
   size=${#route_list[@]}
   
   if [ $size -gt 0 ]; then
-    echo "Enter number of the desired profile to start: "
+    echo "Enter number of the desired route to start: "
     select route in "${route_list[@]}"
     do
       echo "Starting route: $route"
-      echo "not yet implemented"
+      $FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-start $route
+      break
+    done
+  else
+    echo "No routes found in container"
+  fi
+}
+
+camelRouteInfo(){
+  chooseNonEnsembleContainer "exclude_all"
+  
+  # TODO - only select stopped routes
+  output=`$FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
+  echo output: $output
+  route_list=($output)
+  
+  size=${#route_list[@]}
+  
+  if [ $size -gt 0 ]; then
+    echo "Enter number of the desired route to get info: "
+    select route in "${route_list[@]}"
+    do
+      echo "Getting info for route: $route"
+      $FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-info $route
+      break
+    done
+  else
+    echo "No routes found in container"
+  fi
+}
+
+camelRouteStop(){
+  chooseNonEnsembleContainer "exclude_all"
+  
+  # TODO - only select started routes
+  output=`$FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
+  echo output: $output
+  route_list=($output)
+  
+  size=${#route_list[@]}
+  
+  if [ $size -gt 0 ]; then
+    echo "Enter number of the desired route to stop: "
+    select route in "${route_list[@]}"
+    do
+      echo "Stopping route: $route"
+      $FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-stop $route
       break
     done
   else

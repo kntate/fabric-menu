@@ -46,7 +46,7 @@ do
 	returnToMenu
 	;;
     "administration")
-	select admin_menu in "sshToContainer" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "environmentInfo" "containerStatus" "camelRouteStart" "activeMQStats" "containerConnect" "rootMenu"
+	select admin_menu in "sshToContainer" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "environmentInfo" "containerStatus" "camel" "activeMQStats" "containerConnect" "rootMenu"
 	do
 	  echo "$admin_menu";
 	  case $admin_menu in	    
@@ -85,11 +85,34 @@ do
 	    "containerStatus")
 		containerStatus
 		returnToMenu
-		;;
-	    "camelRouteStart")
-		camelRouteStart
-		returnToMenu
-		;;	
+		;;		
+	    "camel")
+	      select camel_menu in "camelRouteStart" "camelRouteStop" "camelRouteInfo" "backToAdminMenu"
+	      do
+		echo "$camel_menu";
+		case $camel_menu in		    
+		"camelRouteStart")
+		    camelRouteStart
+		    returnToMenu
+		    ;;	
+		"camelRouteStop")
+		    camelRouteStop
+		    returnToMenu
+		    ;;
+		"camelRouteInfo")
+		    camelRouteInfo
+		    returnToMenu
+		    ;;  
+		"backToAdminMenu")
+		    break;
+		    ;;		  
+		*)
+		    echo "That is not a valid choice!  Input a number."
+		    ;;			    
+		esac	  
+	      done	
+	      returnToMenu
+	      ;;
 	    "activeMQStats")
 		activeMQStats
 		returnToMenu
