@@ -17,39 +17,45 @@ waitUntilProvisioned(){
   container=$1
   
   info_command="$FUSE_CLIENT_SCRIPT container-info $1"
+  
+  container_exists=`$info_command`
+  if [[ $container_exists == "Container $container does not exists!" ]]; then
+    echo "Error waiting on provisioning, container does not exist!"
+  else
 
-  echo "Waiting for container: $container to provision"
-  sleep 10
-  while : 
-  do
-    
-    # Get the third token from the "Provision Status" line
-    status=`$info_command  | grep "Provision Status:" |awk '{print $3}'`
-    
-    echo "current status: $status"
-    
-    if [ -z $status ]; then
-      status="unknown"
-    fi
-      
-    if [ $status == "success" ]; then
-      echo "Successfully provisioned server"
-      break
-    fi
-    
-    
-    i=$[$i+1]
-    
-    if [ $i -gt 25 ]; then
-      echo "Timeout waiting for container: $container to provision"
-      echo "Container info: "
-      $info_command
-      exit 1
-    fi
-    
+    echo "Waiting for container: $container to provision"
     sleep 10
-    
-  done
+    while : 
+    do
+      
+      # Get the third token from the "Provision Status" line
+      status=`$info_command  | grep "Provision Status:" |awk '{print $3}'`
+      
+      echo "current status: $status"
+      
+      if [ -z $status ]; then
+	status="unknown"
+      fi
+	
+      if [ $status == "success" ]; then
+	echo "Successfully provisioned server"
+	break
+      fi
+      
+      
+      i=$[$i+1]
+      
+      if [ $i -gt 25 ]; then
+	echo "Timeout waiting for container: $container to provision"
+	echo "Container info: "
+	$info_command
+	exit 1
+      fi
+      
+      sleep 10
+      
+    done
+  fi
 }
 
 readContainers(){
@@ -229,6 +235,7 @@ installApp(){
   declare -a server_list
   echo "How many application containers should be created?"
   read application_count
+  # TODO make sure profile exists??
   echo "What fabric profile should be used?"
   read profile
   
@@ -262,7 +269,12 @@ installApp(){
     if [ $DEBUG = true ]; then
       echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --profile $profile --version $version --user $username --password $password $container"
     fi
-    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  --profile $profile --version $version --user $username --password $password $container"
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  --profile $profile --version $version --user $username --password $password $container"`
+    echo -e $result
+    if [[ $result == Error* ]]; then
+      echo "Error creating container: $container"
+      break;
+    fi
 
     waitUntilProvisioned $container
     
