@@ -103,7 +103,6 @@ getAllContainerList(){
   echo "Retrieving container list from Fabric"
   filter=$1
   output=`$FUSE_CLIENT_SCRIPT fabric:container-list | egrep -v "provision status$filter" | awk '{print $1}'`
-  echo -e $output
   if [[ $output == Error* ]] || [[ $output == Command* ]] || [[ $output == Failed* ]]; then
     echo "Error obtaining fabric container list. Error msg:"
     echo -e $output
@@ -111,6 +110,7 @@ getAllContainerList(){
     exit
   fi
   container_array=($output)
+  filter=""
 }
 
 chooseContainer(){
@@ -125,9 +125,8 @@ chooseContainer(){
   do
     :
     # remove '*' character from root
-    if [ $i == "root*" ]; then
-	container_array[$index]="root"
-    fi
+    container_array[$index]=`echo ${container_array[$index]} | sed 's/\*$//'`
+    
     choice_list[$index]=${container_array[$index]}
     index=$[$index+1]
   done
@@ -143,6 +142,8 @@ chooseContainer(){
     echo "Container chosen: $chosen_container"
     break
   done
+  
+  choose_filter=""
 
 }
 
@@ -646,9 +647,8 @@ environmentInfo(){
     for container in "${container_array[@]}"
     do
       :
-      if [ $container == "root*" ]; then
-	container="root"
-      fi
+      # Remove and trailing '*' character
+      container=`echo $container | sed 's/\*$//'`
       echo "Detailed info for container: $container"
       $FUSE_CLIENT_SCRIPT "fabric:container-info $container"
     done
