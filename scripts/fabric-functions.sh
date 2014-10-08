@@ -231,6 +231,24 @@ installApp(){
   read application_count
   echo "What fabric profile should be used?"
   read profile
+  
+  # find all versions available in fabric
+  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
+  availableVersionsArray=($availableVersions)
+  
+  versionCount=${#availableVersionsArray[@]}
+  
+  if [ $versionCount -gt 1 ];then 
+    echo "What version should be used?"
+    select version in "${availableVersionsArray[@]}"
+    do
+      echo "Using version: $version"      
+      break
+    done
+  else # only older versions are found
+    echo "Only one version found, using version: $availableVersions"
+    version=$availableVersions
+  fi
 
   readContainers application_count
 
@@ -242,9 +260,9 @@ installApp(){
     password=`echo ${server_list[$j]} | awk '{print $4}'`
     echo "Installing container: $container to server: $server with profile: $profile" 
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --profile $profile --user $username --password $password $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --profile $profile --version $version --user $username --password $password $container"
     fi
-    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  --profile $profile --user $username --password $password $container"
+    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  --profile $profile --version $version --user $username --password $password $container"
 
     waitUntilProvisioned $container
     
