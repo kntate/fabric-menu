@@ -235,6 +235,7 @@ installApp(){
   declare -a server_list
   echo "How many application containers should be created?"
   read application_count
+  
   # TODO make sure profile exists??
   echo "What fabric profile should be used?"
   read profile
@@ -380,8 +381,26 @@ startupContainer(){
 }
 
 containerConnect(){
-  chooseContainer
-  $FUSE_CLIENT_SCRIPT fabric:container-connect $chosen_container  
+  chooseContainer "exclude_all"
+  
+  run_again="y"
+  
+  while [ $run_again == "y" ];
+  do
+    echo "Enter command to run:"
+    read command
+    
+    echo "executing: $FUSE_CLIENT_SCRIPT fabric:container-connect $chosen_container $command"
+    echo "output:"
+    
+    $FUSE_CLIENT_SCRIPT fabric:container-connect $chosen_container $command
+    
+    echo "Run another command? [y/n]"
+    read run_again
+    
+  done
+  
+    
 }
 
 activeMQStats(){
