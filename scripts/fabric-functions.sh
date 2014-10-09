@@ -8,6 +8,8 @@ FUSE_CLIENT_SCRIPT=$FUSE_BIN/client
 
 FUSE_USER=`whoami`
 
+hidden_password="******"
+
 if [ ! -f $FUSE_CLIENT_SCRIPT ]; then
   echo "Error: Fuse client script does not exist at $FUSE_CLIENT_SCRIPT"
   exit 1
@@ -88,12 +90,12 @@ readContainers(){
       read username
       username=${username:-$default_user}
       echo "Enter password for $username"
-      read password
+      readPassword
       
-      confirm_message="$confirm_message\n\tContainer $i, hostname: $hostname, container_name: $container_name, username: $username, password: $password"
+      confirm_message="$confirm_message\n\tContainer $i, hostname: $hostname, container_name: $container_name, username: $username, password: $hidden_password"
       
       server_list[$i]="$hostname $container_name $username $password"
-      
+
   done
   confirm_message="$confirm_message\nAre these values correct? [y/n]"
   echo -e $confirm_message
@@ -593,6 +595,28 @@ upgradeAllContainers(){
     
     break
   done
+}
+
+readPassword(){
+  password=""
+  
+  while : 
+  do
+    echo "Enter Password:"
+    read -s password
+    
+    echo "Confirm Password:"
+    read -s password_confirm
+    
+    if [ $password == $password_confirm ]; then
+      break
+    fi
+    
+    echo "Passwords do not match, try again"
+    
+  done
+  
+
 }
 
 upgradeSingleContainer(){
