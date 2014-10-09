@@ -46,7 +46,7 @@ do
 	returnToMenu
 	;;
     "administration")
-	select admin_menu in "sshToContainer" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "environmentInfo" "containerStatus" "camel" "activeMQStats" "containerConnect" "rootMenu"
+	select admin_menu in "sshToContainer" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "environmentInfo" "containerStatus" "camel" "activeMQStats" "threadDump" "containerConnect" "rootMenu"
 	do
 	  echo "$admin_menu";
 	  case $admin_menu in	    
@@ -117,6 +117,10 @@ do
 		activeMQStats
 		returnToMenu
 		;;	
+	    "threadDump")
+		threadDump
+		returnToMenu
+		;;			
 	    "containerConnect")
 		containerConnect
 		returnToMenu
