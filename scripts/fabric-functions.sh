@@ -10,6 +10,7 @@ FUSE_USER=`whoami`
 
 hidden_password="******"
 
+# Make sure client script exists
 if [ ! -f $FUSE_CLIENT_SCRIPT ]; then
   echo "Error: Fuse client script does not exist at $FUSE_CLIENT_SCRIPT"
   exit 1
@@ -212,7 +213,7 @@ installEnsemble(){
     ensemble_list="$ensemble_list $container"
     echo "Installing container: $container to server: $server"
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $password $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $hidden_password $container"
     fi
     $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $password $container"
 
@@ -270,7 +271,7 @@ installApp(){
     password=`echo ${server_list[$j]} | awk '{print $4}'`
     echo "Installing container: $container to server: $server with profile: $profile" 
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --profile $profile --version $version --user $username --password $password $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --profile $profile --version $version --user $username --password $hidden_password $container"
     fi
     result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  --profile $profile --version $version --user $username --password $password $container"`
     echo -e $result
