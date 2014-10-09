@@ -28,80 +28,99 @@ exec >> $logFile
 exec 2>&1
 
 returnToMenu(){
-  echo -e "\n\n"
   REPLY=""
-  echo "Make another selection."
+  echo -e "\n$1\n"
 }
 
+mainTitle="\E[0;33;42m\033[1m#### MAIN MENU ####\033[0m"
+echo -e "\n${mainTitle}\n"
 select root_menu in "installEnsemble" "installApp" "administration" "Exit"
 do
     echo "$root_menu";
     case $root_menu in
     "installEnsemble")
 	installEnsemble
-	returnToMenu
+	REPLY=""
+	echo -e "\n${mainTitle}\n"
 	;;
     "installApp")
 	installApp
-	returnToMenu
+	REPLY=""
+	echo -e "\n${mainTitle}\n"
 	;;
     "administration")
+	admin_title="\E[0;33;41m\033[1m#### Main Menu  > Administration ####\033[0m"
+	echo -e "\n${admin_title}\n"
 	select admin_menu in "sshToContainer" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "environmentInfo" "containerStatus" "camel" "activeMQStats" "threadDump" "containerConnect" "rootMenu"
 	do
 	  echo "$admin_menu";
 	  case $admin_menu in	    
 	  "sshToContainer")
 		sshToContainer
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;	
 	    "containerUpgrade")
 		containerUpgrade
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;	
 	    "containerRollback")
 		containerRollback
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;
 	    "startContainer")
 		startContainer
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;	
 	    "stopContainer")
 		stopContainer
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;		
 	    "addProfile")
 		addProfile
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;
 	    "environmentInfo")
 		environmentInfo
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;
 	    "removeProfile")
 		removeProfile
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;	
 	    "containerStatus")
 		containerStatus
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;		
 	    "camel")
+	      camel_title="\E[0;33;44m\033[1m#### Main Menu  > Administration > Camel ####\033[0m"
+	      echo -e "\n${camel_title}\n"	    
 	      select camel_menu in "camelRouteStart" "camelRouteStop" "camelRouteInfo" "backToAdminMenu"
 	      do
 		echo "$camel_menu";
 		case $camel_menu in		    
 		"camelRouteStart")
 		    camelRouteStart
-		    returnToMenu
+		    REPLY=""
+		    echo -e "\n${camel_title}\n"
 		    ;;	
 		"camelRouteStop")
 		    camelRouteStop
-		    returnToMenu
+		    REPLY=""
+		    echo -e "\n${camel_title}\n"
 		    ;;
 		"camelRouteInfo")
 		    camelRouteInfo
-		    returnToMenu
+		    REPLY=""
+		    echo -e "\n${camel_title}\n"
 		    ;;  
 		"backToAdminMenu")
 		    break;
@@ -111,19 +130,23 @@ do
 		    ;;			    
 		esac	  
 	      done	
-	      returnToMenu
+	      REPLY=""
+	      echo -e "\n${admin_title}\n"
 	      ;;
 	    "activeMQStats")
 		activeMQStats
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;	
 	    "threadDump")
 		threadDump
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;			
 	    "containerConnect")
 		containerConnect
-		returnToMenu
+		REPLY=""
+		echo -e "\n${admin_title}\n"
 		;;			  
 	  "rootMenu")
 	      break;
@@ -133,7 +156,8 @@ do
 	      ;;	
 	  esac	  
 	done
-	returnToMenu
+	REPLY=""
+	echo -e "\n${mainTitle}\n"
 	;;	
  
     "Exit")
