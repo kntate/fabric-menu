@@ -12,25 +12,26 @@ EAP_Scripts=${BaseDir};
 # Source the functions
 . $BaseDir/fabric-functions.sh
 
-trap bashtrap INT
-bashtrap()
-{
-	kill -9 $tailpid	
-	exit;
+trap bashtrap EXIT
+bashtrap(){
+  
+  kill $tailpid    
+  kill $greppid      
+  	
+  exit;
+  
 }
 
 # Logging
 logFile=$LOGS/fabric-menu-${DATE}.log
 cat /dev/null > $logFile
 tail -f $logFile | grep -v "presented unverified key:" &
-tailpid=$!
+greppid=$!
+tailpid=$(($greppid-1))
+echo $greppid
+echo $tailpid
 exec >> $logFile
 exec 2>&1
-
-returnToMenu(){
-  REPLY=""
-  echo -e "\n$1\n"
-}
 
 mainTitle="\E[0;33;42m\033[1m#### MAIN MENU ####\033[0m"
 echo -e "\n${mainTitle}\n"
