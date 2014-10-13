@@ -66,7 +66,7 @@ readContainers(){
   num_rows=$1
   num_columns=2  
   
-  if [ -z $profile ]; then
+  if [ -z "$profile" ]; then
     # if no profile then it is an ensemble install
     profile="ensemble"
     default_container_name_prefix="ensemble_container_"
@@ -200,6 +200,7 @@ installEnsemble(){
   echo "How many ensemble containers should be created?"
   read ensemble_count
 
+  profile=""
   readContainers ensemble_count
 
   ensemble_list=""
@@ -240,8 +241,18 @@ installApp(){
   read application_count
   
   # TODO make sure profile exists??
-  echo "What fabric profile should be used?"
+  echo "What fabric profile should be used? Note: Apply multiple profiles with a space delimiter."
   read profile
+  
+  profile_array=($profile)
+  
+  profile_args=""
+  for i in "${profile_array[@]}"
+  do
+    :
+    profile_args="$profile_args --profile $i"
+  done
+  echo $profile_args
   
   # find all versions available in fabric
   availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
@@ -271,9 +282,9 @@ installApp(){
     password=`echo ${server_list[$j]} | awk '{print $4}'`
     echo "Installing container: $container to server: $server with profile: $profile" 
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --profile $profile --version $version --user $username --password $hidden_password $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path $profile_args --version $version --user $username --password $hidden_password $container"
     fi
-    result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  --profile $profile --version $version --user $username --password $password $container"`
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  $profile_args --version $version --user $username --password $password $container"`
     echo -e $result
     if [[ $result == Error* ]]; then
       echo "Error creating container: $container"
