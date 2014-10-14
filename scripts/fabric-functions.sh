@@ -72,9 +72,10 @@ readContainers(){
     default_container_name_prefix="ensemble_container_"
     default_user="fabric8"
   else
+    first_profile=`echo $profile | awk '{print $1}'`
     # add underscore to profile name
-    default_container_name_prefix=$profile"_"
-    default_user=$profile
+    default_container_name_prefix=$first_profile"_"
+    default_user=$first_profile
   fi
 
   confirm_message="The following containers have been input with profile: $profile"
@@ -247,7 +248,8 @@ installApp(){
   read application_count
   
   # TODO make sure profile exists??
-  echo "What fabric profile should be used? Note: Apply multiple profiles with a space delimiter."
+  echo "What fabric profile should be used?" 
+  echo "Note: Apply multiple profiles with a space delimiter."
   read profile
   
   profile_array=($profile)
