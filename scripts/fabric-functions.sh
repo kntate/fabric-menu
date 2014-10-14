@@ -31,11 +31,13 @@ checkIfFabricCreated(){
   if [[ $command_result == Command* ]]; then
     echo "Fabric not installed. Should it be created? [y/n]"
     read create_fabric
+    create_fabric=${create_fabric:-n}
     if [ $create_fabric == "y" ]; then
       echo $FUSE_CLIENT_SCRIPT "fabric:create --wait-for-provisioning"
       $FUSE_CLIENT_SCRIPT "fabric:create --wait-for-provisioning"
     else
       echo "Fabric will not be created, script exiting."
+      exit
     fi
   else
     echo "Fabric has been created."
@@ -67,7 +69,7 @@ waitUntilProvisioned(){
       fi
 	
       if [ $status == "success" ]; then
-	echo "Successfully provisioned server"
+	echo "Successfully provisioned container: $container"
 	break
       fi
       
@@ -161,7 +163,9 @@ chooseContainer(){
   do
     :
     # remove '*' character from root
-    container_array[$index]=`echo ${container_array[$index]} | sed 's/\*$//'`
+    if [ -z $leave_star_on_root ]; then
+      container_array[$index]=`echo ${container_array[$index]} | sed 's/\*$//'`
+    fi
     
     choice_list[$index]=${container_array[$index]}
     index=$[$index+1]
@@ -334,54 +338,94 @@ installApp(){
 }
 
 stopContainer(){
-  chooseContainer
+  # When chosing container, leave the * at the end of the root name because this container cannot be shutdown with container-stop.
+  # Instead osgi:shutdown should be used.
+  leave_star_on_root="leave_star_on_root"
+  chooseNonEnsembleContainer
   if [ $chosen_container == "ALL" ]; then
     for i in "${container_array[@]}"
     do
       :
-      shutdownContainer $i
+      # Only shut down non root containers, The root container (ends in "*" needs osgi:shutdown
+      if [[ $i != *\* ]]; then	
+	shutdownContainer $i
+      fi
     done
+    
+    #echo "Should the root container also be shutdown? [y/n]"
+    #read shutdown_root
+    
+    #if [ $shutdown_root == "y" ]; then
+    #  echo "Shutting down root."
+    #  $FUSE_CLIENT_SCRIPT "osgi:shutdown --force"
+    #  echo "Root shutdown, exiting script."
+    #  exit 0
+    #fi
+    
   else
-    shutdownContainer $chosen_container
+    # Make sure chosen container is not the root
+    if [[ $chosen_container != *\* ]]; then	
+      shutdownContainer $chosen_container
+    else
+      echo "Shutting down root."
+      $FUSE_CLIENT_SCRIPT "osgi:shutdown --force"
+      echo "Root shutdown, exiting script."
+      exit 0
+    fi
   fi  
+  
+  # set variable back to empty to not distrupt other methods
+  leave_star_on_root=""
 }
 
 shutdownContainer(){
   
   container=$1
-  $FUSE_CLIENT_SCRIPT "container-stop --force $container"
   
-  retry_count="1"
+  pid=`$FUSE_CLIENT_SCRIPT fabric:container-info $container | grep "Process ID" | awk '{print $3}'`
+  if [ $pid == "null" ]; then
+    echo "Container $container already shutdown, skipping."
+  else
   
-  # wait for the container to show as shutdownContainer
-  echo "Waiting for container to shutdown"
-  while : 
-  do
-    :
-    pid=`$FUSE_CLIENT_SCRIPT fabric:container-info $container | grep "Process ID" | awk '{print $3}'`
-    echo pid: $pid
-  
-    if [ $pid = "null" ]; then
-      break;
-    fi
+    $FUSE_CLIENT_SCRIPT "container-stop --force $container"
     
-    retry_count=$[$retry_count+1]
+    retry_count="1"
     
-    if [ $retry_count -gt 25 ]; then
-      echo "Timeout waiting for container: $container to shutdown"
-      echo "Container info: "
-      $FUSE_CLIENT_SCRIPT container-info $container
-      exit 1
-    fi
+    # wait for the container to show as shutdownContainer
+    echo "Waiting for container $container to shutdown"
+    while : 
+    do
+      :
+      pid=`$FUSE_CLIENT_SCRIPT fabric:container-info $container | grep "Process ID" | awk '{print $3}'`
+      echo pid: $pid
+      
+      if [ -z $pid ]; then
+	echo "Error getting status for container: $container, will not wait until shutdown is confirmed."
+	break;
+      fi
     
-    sleep 10
-    
-  done
-  
+      if [ $pid = "null" ]; then
+	echo "Container $container is shutdown."
+	break;
+      fi
+      
+      retry_count=$[$retry_count+1]
+      
+      if [ $retry_count -gt 25 ]; then
+	echo "Timeout waiting for container: $container to shutdown"
+	echo "Container info: "
+	$FUSE_CLIENT_SCRIPT container-info $container
+	exit 1
+      fi
+      
+      sleep 10
+      
+    done
+  fi
 }
 
 startContainer(){
-  chooseContainer
+  chooseNonEnsembleContainer 
   if [ $chosen_container == "ALL" ]; then
     for i in "${container_array[@]}"
     do
@@ -400,30 +444,37 @@ startupContainer(){
   
   i="1"
   
-  # wait for the container to show as shutdownContainer
-  echo "Waiting for container to startup"
-  while : 
-  do
-    :
-    pid=`$FUSE_CLIENT_SCRIPT fabric:container-info $container | grep "Process ID" | awk '{print $3}'`
-    echo pid: $pid
-  
-    if [ $pid != "null" ]; then
-      break;
-    fi
+  pid=`$FUSE_CLIENT_SCRIPT fabric:container-info $container | grep "Process ID" | awk '{print $3}'`
+  if [ $pid != "null" ]; then
+    echo "Container $container already started, skipping."
+  else
+    # wait for the container to show as shutdownContainer
+    echo "Waiting for container $container to startup"
+    while : 
+    do
+      :
+      pid=`$FUSE_CLIENT_SCRIPT fabric:container-info $container | grep "Process ID" | awk '{print $3}'`
+      echo pid: $pid
     
-    i=$[$i+1]
-    
-    if [ $i -gt 25 ]; then
-      echo "Timeout waiting for container: $container to startup"
-      echo "Container info: "
-      $FUSE_CLIENT_SCRIPT container-info $container
-      exit 1
-    fi
-    
-    sleep 10
-    
-  done
+      if [ $pid != "null" ]; then
+	echo "Container $container has started. Waiting for provisioning."
+	waitUntilProvisioned $container
+	break;
+      fi
+      
+      i=$[$i+1]
+      
+      if [ $i -gt 25 ]; then
+	echo "Timeout waiting for container: $container to startup"
+	echo "Container info: "
+	$FUSE_CLIENT_SCRIPT container-info $container
+	exit 1
+      fi
+      
+      sleep 10
+      
+    done
+  fi
   
 }
 
