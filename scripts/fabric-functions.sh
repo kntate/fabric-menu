@@ -123,7 +123,7 @@ getAllContainerList(){
 }
 
 chooseContainer(){
-  exclude_all=$1
+  exclude_all_option=$1
   
   getAllContainerList $choose_filter
   
@@ -141,7 +141,7 @@ chooseContainer(){
   done
   
   # Add all choice if there is more than one option and told to include the all option
-  if [ $index -gt 1 ] && [ -z $exclude_all ]; then
+  if [ $index -gt 1 ] && [ -z $exclude_all_option ]; then
       choice_list[$index]="ALL"
   fi  
   
@@ -214,9 +214,9 @@ installEnsemble(){
     ensemble_list="$ensemble_list $container"
     echo "Installing container: $container to server: $server"
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $hidden_password $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $hidden_password  --jvm-opts '$ensemble_container_jvm_props' $container"
     fi
-    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $password $container"
+    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $password --jvm-opts '$ensemble_container_jvm_props' $container"
 
     waitUntilProvisioned $container
     
@@ -252,7 +252,6 @@ installApp(){
     :
     profile_args="$profile_args --profile $i"
   done
-  echo $profile_args
   
   # find all versions available in fabric
   availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
@@ -282,9 +281,9 @@ installApp(){
     password=`echo ${server_list[$j]} | awk '{print $4}'`
     echo "Installing container: $container to server: $server with profile: $profile" 
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path $profile_args --version $version --user $username --password $hidden_password $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path $profile_args --version $version --user $username --password $hidden_password --jvm-opts '$app_container_jvm_props' $container"
     fi
-    result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  $profile_args --version $version --user $username --password $password $container"`
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  $profile_args --version $version --user $username --password $password --jvm-opts '$app_container_jvm_props' $container"`
     echo -e $result
     if [[ $result == Error* ]]; then
       echo "Error creating container: $container"
@@ -395,7 +394,7 @@ startupContainer(){
 }
 
 containerConnect(){
-  chooseContainer "exclude_all"
+  chooseContainer "exclude_all_option"
   
   run_again="y"
   
@@ -490,7 +489,7 @@ removeProfileFromContainer(){
 }
 
 camelRouteStart(){
-  chooseNonEnsembleContainer "exclude_all"
+  chooseNonEnsembleContainer "exclude_all_option"
   
   # TODO - only select stopped routes
   output=`$FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
@@ -513,7 +512,7 @@ camelRouteStart(){
 }
 
 camelRouteInfo(){
-  chooseNonEnsembleContainer "exclude_all"
+  chooseNonEnsembleContainer "exclude_all_option"
   
   # TODO - only select stopped routes
   output=`$FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
@@ -536,7 +535,7 @@ camelRouteInfo(){
 }
 
 camelRouteStop(){
-  chooseNonEnsembleContainer "exclude_all"
+  chooseNonEnsembleContainer "exclude_all_option"
   
   # TODO - only select started routes
   output=`$FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
@@ -787,7 +786,7 @@ environmentInfo(){
 }
 
 sshToContainer(){
-  chooseContainer "exclude_all"
+  chooseContainer "exclude_all_option"
   host=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container | grep "Network Address:" | awk '{print $3}'`
   
   first_profile=`$FUSE_CLIENT_SCRIPT fabric:container-list | grep -v "provision status" | grep $chosen_container | awk '{print $4}' | sed 's/,$//'`
@@ -821,7 +820,7 @@ sshToContainer(){
 
 threadDump(){
   # Choose an application container, don't allow for an "ALL" option
-  chooseNonEnsembleContainer "exclude_all"
+  chooseNonEnsembleContainer "exclude_all_option"
   
   # Get host and pid of chosen_container
   container_info=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container`
