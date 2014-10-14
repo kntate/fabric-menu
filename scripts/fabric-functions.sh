@@ -199,38 +199,44 @@ installEnsemble(){
   echo "Note: There should be an even number of ensemble containers created since localhost will also be in the ensemble."
   echo "How many ensemble containers should be created?"
   read ensemble_count
-
-  profile=""
-  readContainers ensemble_count
-
-  ensemble_list=""
-
-  for ((j=1;j<=ensemble_count;j++)) do
-
-    server=`echo ${server_list[$j]} | awk '{print $1}'`
-    container=`echo ${server_list[$j]} | awk '{print $2}'`
-    username=`echo ${server_list[$j]} | awk '{print $3}'`
-    password=`echo ${server_list[$j]} | awk '{print $4}'`
-    ensemble_list="$ensemble_list $container"
-    echo "Installing container: $container to server: $server"
-    if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $hidden_password  --jvm-opts '$ensemble_container_jvm_props' $container"
-    fi
-    $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $password --jvm-opts '$ensemble_container_jvm_props' $container"
-
-    waitUntilProvisioned $container
-    
-  done
   
-  if [ $DEBUG ]; then
-    echo $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
-  fi
-  echo "Creating ensemble"
-  $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+  if [ $((ensemble_count%2)) -eq 1 ]; then
+    echo "Error, must input even number of ensemble containers. Try again."
+    installEnsemble
+  else
 
-  sleep 10
-  echo "Ensemble created:"
-  $FUSE_CLIENT_SCRIPT fabric:ensemble-list
+    profile=""
+    readContainers ensemble_count
+
+    ensemble_list=""
+
+    for ((j=1;j<=ensemble_count;j++)) do
+
+      server=`echo ${server_list[$j]} | awk '{print $1}'`
+      container=`echo ${server_list[$j]} | awk '{print $2}'`
+      username=`echo ${server_list[$j]} | awk '{print $3}'`
+      password=`echo ${server_list[$j]} | awk '{print $4}'`
+      ensemble_list="$ensemble_list $container"
+      echo "Installing container: $container to server: $server"
+      if [ $DEBUG = true ]; then
+	echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $hidden_password  --jvm-opts '$ensemble_container_jvm_props' $container"
+      fi
+      $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $password --jvm-opts '$ensemble_container_jvm_props' $container"
+
+      waitUntilProvisioned $container
+      
+    done
+    
+    if [ $DEBUG ]; then
+      echo $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+    fi
+    echo "Creating ensemble"
+    $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+
+    sleep 10
+    echo "Ensemble created:"
+    $FUSE_CLIENT_SCRIPT fabric:ensemble-list
+  fi
 
 }
 
