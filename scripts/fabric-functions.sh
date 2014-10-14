@@ -16,6 +16,32 @@ if [ ! -f $FUSE_CLIENT_SCRIPT ]; then
   exit 1
 fi
 
+checkIfFuseRunning(){
+  echo "Ensuring Fuse is running."
+  # just run a simple command to make sure we can connect to fuse, the "set -e" in the menu will cause script to  exit if Fuse isn't running
+  command_result=`$FUSE_CLIENT_SCRIPT "version"`
+  echo "Able to connect to Fuse."
+  
+}
+
+checkIfFabricCreated(){
+  echo "Ensuring fabric has been created."
+  command_result=`$FUSE_CLIENT_SCRIPT "fabric:container-list"`
+  
+  if [[ $command_result == Command* ]]; then
+    echo "Fabric not installed. Should it be created? [y/n]"
+    read create_fabric
+    if [ $create_fabric == "y" ]; then
+      echo $FUSE_CLIENT_SCRIPT "fabric:create --wait-for-provisioning"
+      $FUSE_CLIENT_SCRIPT "fabric:create --wait-for-provisioning"
+    else
+      echo "Fabric will not be created, script exiting."
+    fi
+  else
+    echo "Fabric has been created."
+  fi
+}
+
 waitUntilProvisioned(){
   container=$1
   

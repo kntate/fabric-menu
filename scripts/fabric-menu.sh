@@ -28,10 +28,11 @@ cat /dev/null > $logFile
 tail -f $logFile | grep -v "presented unverified key:" &
 greppid=$!
 tailpid=$(($greppid-1))
-echo $greppid
-echo $tailpid
 exec >> $logFile
 exec 2>&1
+
+checkIfFuseRunning
+checkIfFabricCreated
 
 mainTitle="\E[0;33;42m\033[1m#### MAIN MENU ####\033[0m"
 echo -e "\n${mainTitle}\n"
