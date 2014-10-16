@@ -48,8 +48,10 @@ checkIfFuseRunning(){
     echo "Enter Fuse port:"
     if [ -n "$fuse_port" ]; then
       default_fuse_port=$fuse_port
-      echo "Default: $default_fuse_port"
+    else
+      default_fuse_port="8101"
     fi
+    echo "Default: $default_fuse_port"
     read fuse_port    
     fuse_port=${fuse_port:-$default_fuse_port}
     
