@@ -307,9 +307,9 @@ installEnsemble(){
       ensemble_list="$ensemble_list $container"
       echo "Installing container: $container to server: $server"
       if [ $DEBUG = true ]; then
-	echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $hidden_password  --jvm-opts '$ensemble_container_jvm_props' $container"
+	echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $hidden_password --profile fabric --jvm-opts '$ensemble_container_jvm_props' $container"
       fi
-      $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $password --jvm-opts '$ensemble_container_jvm_props' $container"
+      $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $password --profile fabric --jvm-opts '$ensemble_container_jvm_props' $container"
 
       waitUntilProvisioned $container
       
