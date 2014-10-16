@@ -4,9 +4,7 @@ if [ -z $FUSE_HOME ]; then
   FUSE_HOME=$fuse_home_default
 fi
 FUSE_BIN=$FUSE_HOME/bin
-FUSE_CLIENT_SCRIPT=$FUSE_BIN/client
-
-FUSE_USER=`whoami`
+FUSE_CLIENT_SCRIPT_PATH=$FUSE_BIN/client
 
 hidden_password="******"
 
@@ -17,10 +15,44 @@ if [ ! -f $FUSE_CLIENT_SCRIPT ]; then
 fi
 
 checkIfFuseRunning(){
+  echo "Enter hostname of server running Fuse:"
+  echo "Default: localhost"
+  read fuse_host
+  
+  # If fuse is local host then just use defaults for the client script
+  if [ -n "$fuse_host" ]; then
+    echo "Enter Fuse user:"
+    read fuse_user
+    
+    echo "Enter Fuse user password, or leave empty if no pw needed:"
+    read fuse_password    
+    
+    echo "Enter Fuse port:"
+    read fuse_port    
+    
+    FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT_PATH -u $fuse_user -h $fuse_host -a $fuse_port"
+    
+    # only include password if one is provided
+    if [ -n "$fuse_password" ]; then
+      FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT -p $fuse_password "
+    fi
+    
+    echo "Using Fuse client script options: $FUSE_CLIENT_SCRIPT"
+  else
+    FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT_PATH"
+  fi
+
   echo "Ensuring Fuse is running."
-  # just run a simple command to make sure we can connect to fuse, the "set -e" in the menu will cause script to  exit if Fuse isn't running
+  # just run a simple command to make sure we can connect to fuse
   command_result=`$FUSE_CLIENT_SCRIPT "version"`
-  echo "Able to connect to Fuse."
+  script_exit_val=$?
+  if [[ $script_exit_val != 0 ]]; then
+    echo "Error connecting to Fuse, try again."
+    checkIfFuseRunning
+  else    
+    echo "Able to connect to Fuse."
+  fi
+  
   
 }
 

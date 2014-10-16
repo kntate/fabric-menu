@@ -1,6 +1,3 @@
-# Kill the script if there is an error
-set -e
-
 BaseDir=${0%/*}
 DATE=`date +%m%d%Y-%H%M%S`
 LOGS=${BaseDir}/../logs
@@ -33,6 +30,9 @@ exec 2>&1
 
 checkIfFuseRunning
 checkIfFabricCreated
+
+# Kill the script if there is an error
+set -e
 
 mainTitle="\E[0;33;42m\033[1m#### MAIN MENU ####\033[0m"
 echo -e "\n${mainTitle}\n"
