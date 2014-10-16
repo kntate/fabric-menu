@@ -16,19 +16,42 @@ fi
 
 checkIfFuseRunning(){
   echo "Enter hostname of server running Fuse:"
-  echo "Default: localhost"
+  if [ -z "$fuse_host" ]; then
+    default_fuse_host="localhost"
+  else
+    default_fuse_host=$fuse_host
+  fi
+  echo "Default: $default_fuse_host"
   read fuse_host
+  fuse_host=${fuse_host:-$default_fuse_host}
   
   # If fuse is local host then just use defaults for the client script
-  if [ -n "$fuse_host" ]; then
+  if [ $fuse_host != "localhost" ]; then
+  
     echo "Enter Fuse user:"
+    if [ -n "$fuse_user" ]; then
+      default_fuse_user=$fuse_user
+      echo "Default: $default_fuse_user"
+    fi
     read fuse_user
+    fuse_user=${fuse_user:-$default_fuse_user}
     
     echo "Enter Fuse user password, or leave empty if no pw needed:"
+    if [ -n "$fuse_password" ]; then
+      default_fuse_password=$fuse_password
+      echo "Default: $default_fuse_password"
+    fi
     read fuse_password    
+    fuse_password=${fuse_password:-$default_fuse_password}
+
     
     echo "Enter Fuse port:"
+    if [ -n "$fuse_port" ]; then
+      default_fuse_port=$fuse_port
+      echo "Default: $default_fuse_port"
+    fi
     read fuse_port    
+    fuse_port=${fuse_port:-$default_fuse_port}
     
     FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT_PATH -u $fuse_user -h $fuse_host -a $fuse_port"
     
