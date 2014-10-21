@@ -36,7 +36,7 @@ set -e
 
 mainTitle="\E[0;33;42m\033[1m#### MAIN MENU ####\033[0m"
 echo -e "\n${mainTitle}\n"
-select root_menu in "installEnsemble" "installApp" "administration" "Exit"
+select root_menu in "installEnsemble" "installApp" "removeApp" "administration" "Exit"
 do
     echo "$root_menu";
     case $root_menu in
@@ -50,6 +50,12 @@ do
 	REPLY=""
 	echo -e "\n${mainTitle}\n"
 	;;
+    "removeApp")
+	removeApp
+	REPLY=""
+	echo -e "\n${mainTitle}\n"
+	;;
+
     "administration")
 	admin_title="\E[0;33;41m\033[1m#### Main Menu  > Administration ####\033[0m"
 	echo -e "\n${admin_title}\n"

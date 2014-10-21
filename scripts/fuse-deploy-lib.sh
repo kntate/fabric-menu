@@ -436,6 +436,19 @@ stopContainer(){
   leave_star_on_root=""
 }
 
+removeApp(){
+ chooseNonEnsembleContainer
+  if [ $chosen_container == "ALL" ]; then
+    for i in "${container_array[@]}"
+    do
+      :
+      $FUSE_CLIENT_SCRIPT container-delete $i    
+    done        
+  else
+    $FUSE_CLIENT_SCRIPT container-delete $chosen_container    
+  fi  
+}
+
 shutdownContainer(){
   
   container=$1
