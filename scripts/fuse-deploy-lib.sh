@@ -400,7 +400,7 @@ installApp(){
       break;
     fi
     
-    remove_command="ssh $username@$host rm -f $container_path/$container/$ZIP_FILENAME"
+    remove_command="ssh $username@$server rm -f $container_path/$container/$ZIP_FILENAME"
     echo "Removing fabric zip file: $remove_command"
     
     $remove_command
