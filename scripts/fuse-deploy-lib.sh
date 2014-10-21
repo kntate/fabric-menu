@@ -199,7 +199,7 @@ readContainers(){
 getAllContainerList(){
   echo "Retrieving container list from Fabric"
   filter=$1
-  output=`$FUSE_CLIENT_SCRIPT fabric:container-list | egrep -v "provision status$filter" | awk '{print $1}'`
+  output=`$FUSE_CLIENT_SCRIPT fabric:container-list $chosen_app | egrep -v "provision status$filter" | awk '{print $1}'`
   if [[ $output == Error* ]] || [[ $output == Command* ]] || [[ $output == Failed* ]]; then
     echo "Error obtaining fabric container list. Error msg:"
     echo -e $output
@@ -208,6 +208,7 @@ getAllContainerList(){
   fi
   container_array=($output)
   filter=""
+  chosen_app=''
 }
 
 chooseContainer(){
@@ -230,24 +231,30 @@ chooseContainer(){
     index=$[$index+1]
   done
   
-  # Add all choice if there is more than one option and told to include the all option
-  if [ $index -gt 1 ] && [ -z $exclude_all_option ]; then
-      choice_list[$index]="ALL"
-  fi  
-  
-  echo "Enter number of the desired container: "
-  select chosen_container in "${choice_list[@]}"
-  do
-    echo "Container chosen: $chosen_container"
-    break
-  done
-  
+  if [ $index == 0 ]; then
+    echo "No matching conatiners found."
+    chosen_container=""
+  else
+    
+    # Add all choice if there is more than one option and told to include the all option
+    if [ $index -gt 1 ] && [ -z $exclude_all_option ]; then
+	choice_list[$index]="ALL"
+    fi  
+    
+    echo "Enter number of the desired container: "
+    select chosen_container in "${choice_list[@]}"
+    do
+      echo "Container chosen: $chosen_container"
+      break
+    done
+    
+  fi
   choose_filter=""
 
 }
 
 chooseNonEnsembleContainer(){
-  choose_filter="|ensemble"
+  choose_filter="$choose_filter|ensemble"
   chooseContainer $1
 }
 
@@ -444,14 +451,18 @@ stopContainer(){
 }
 
 removeApp(){
- chooseNonEnsembleContainer
+  echo "Which application?"
+  read chosen_app
+  chooseNonEnsembleContainer
   if [ $chosen_container == "ALL" ]; then
     for i in "${container_array[@]}"
     do
       :
+      echo "$FUSE_CLIENT_SCRIPT container-delete $i"    
       $FUSE_CLIENT_SCRIPT container-delete $i    
     done        
   else
+    echo "$FUSE_CLIENT_SCRIPT container-delete $chosen_container"
     $FUSE_CLIENT_SCRIPT container-delete $chosen_container    
   fi  
 }
