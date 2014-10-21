@@ -265,7 +265,7 @@ getAmqStatsForContainer(){
   if [[ $command_result == *Command* ]]; then
     echo "Activemq command not found, container $container does not have a running broker."
   else
-    echo -e $command_result
+    echo -e "$command_result"
   fi
 }
 
