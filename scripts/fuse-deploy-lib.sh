@@ -261,7 +261,12 @@ chooseNonEnsembleContainer(){
 getAmqStatsForContainer(){
   container=$1
   echo "Stats for container: $container"
-  $FUSE_CLIENT_SCRIPT fabric:container-connect $container activemq:dstat
+  command_result=`$FUSE_CLIENT_SCRIPT fabric:container-connect $container activemq:dstat`
+  if [[ $command_result == *Command* ]]; then
+    echo "Activemq command not found, container $container does not have a running broker."
+  else
+    echo -e $command_result
+  fi
 }
 
 containerStatus(){
