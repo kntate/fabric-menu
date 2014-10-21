@@ -6,6 +6,8 @@ fi
 FUSE_BIN=$FUSE_HOME/bin
 FUSE_CLIENT_SCRIPT_PATH=$FUSE_BIN/client
 
+ZIP_FILENAME="fabric8-karaf-1.0.0.redhat-379.zip"
+
 hidden_password="******"
 
 # Make sure client script exists
@@ -385,7 +387,12 @@ installApp(){
       echo "Error creating container: $container"
       break;
     fi
-
+    
+    remove_command="ssh $username@$host rm -f $container_path/$container/$ZIP_FILENAME"
+    echo "Removing fabric zip file: $remove_command"
+    
+    $remove_command
+    
     waitUntilProvisioned $container
     
   done
