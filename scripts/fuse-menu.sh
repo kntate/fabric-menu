@@ -4,10 +4,10 @@ LOGS=${BaseDir}/../logs
 EAP_Scripts=${BaseDir};
 
 # Source the properties
-. $BaseDir/../properties/container-install.properties
+. $BaseDir/../properties/fuse-install.properties
 
 # Source the functions
-. $BaseDir/fuse-deploy-lib.sh
+. $BaseDir/fuse-functions.sh
 
 trap bashtrap EXIT
 bashtrap(){
