@@ -93,7 +93,7 @@ checkIfFabricCreated(){
     create_fabric=${create_fabric:-n}
     if [ $create_fabric == "y" ]; then
       echo $FUSE_CLIENT_SCRIPT "fabric:create --wait-for-provisioning"
-      $FUSE_CLIENT_SCRIPT "fabric:create --wait-for-provisioning"
+      $FUSE_CLIENT_SCRIPT "fabric:create --clean --wait-for-provisioning"
     else
       echo "Fabric will not be created, script exiting."
       exit
@@ -170,10 +170,6 @@ readContainers(){
       
       echo "Enter container $i hostname:"
       read hostname
-      echo "Enter container $i container_name:" 
-      echo "Default: [$default_container_name_prefix$i]"
-      read container_name
-      container_name=${container_name:-$default_container_name_prefix$i}
       echo "Enter container $i username:"
       echo "Default: [$default_user]"
       read username
@@ -181,9 +177,9 @@ readContainers(){
       echo "Enter password for $username"
       readPassword
       
-      confirm_message="$confirm_message\n\tContainer $i, hostname: $hostname, container_name: $container_name, username: $username, password: $hidden_password"
+      confirm_message="$confirm_message\n\tContainer $i, hostname: $hostname, username: $username, password: $hidden_password"
       
-      server_list[$i]="$hostname $container_name $username $password"
+      server_list[$i]="$hostname $username $password"
 
   done
   confirm_message="$confirm_message\nAre these values correct? [y/n]"
@@ -295,59 +291,6 @@ getContainerStats(){
   fi
 }
 
-installEnsemble(){
-
-  declare -a server_list
-  echo "Note: There should be an even number of ensemble containers created since localhost will also be in the ensemble."
-  echo "How many ensemble containers should be created?"
-  read ensemble_count
-  
-  if [ $((ensemble_count%2)) -eq 1 ]; then
-    echo "Error, must input even number of ensemble containers. Try again."
-    installEnsemble
-  else
-
-    profile=""
-    readContainers ensemble_count
-
-    ensemble_list=""
-
-    for ((j=1;j<=ensemble_count;j++)) do
-
-      server=`echo ${server_list[$j]} | awk '{print $1}'`
-      container=`echo ${server_list[$j]} | awk '{print $2}'`
-      username=`echo ${server_list[$j]} | awk '{print $3}'`
-      password=`echo ${server_list[$j]} | awk '{print $4}'`
-      ensemble_list="$ensemble_list $container"
-      echo "Installing container: $container to server: $server"
-      if [ $DEBUG = true ]; then
-	echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $hidden_password --profile fabric --jvm-opts '$ensemble_container_jvm_props' $container"
-      fi
-      $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --user $username --password $password --profile fabric --jvm-opts '$ensemble_container_jvm_props' $container"
-
-      remove_command="ssh $username@$server rm -f $container_path/$container/$ZIP_FILENAME"
-      echo "Removing fabric zip file: $remove_command"
-    
-      $remove_command
-      
-      waitUntilProvisioned $container
-      
-    done
-    
-    if [ $DEBUG ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
-    fi
-    echo "Creating ensemble"
-    $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
-
-    $FUSE_CLIENT_SCRIPT fabric:wait-for-provisioning
-    sleep 10
-    echo "Ensemble created:"
-    $FUSE_CLIENT_SCRIPT fabric:ensemble-list
-  fi
-
-}
-
 installApp(){
 
   declare -a server_list
@@ -355,19 +298,15 @@ installApp(){
   read application_count
   
   # TODO make sure profile exists??
-  echo "What fabric profile should be used?" 
-  echo "Note: Apply multiple profiles with a space delimiter."
+  echo "What application?" 
   read profile
   
-  profile_array=($profile)
+  echo "What environment?"
+  read environment
   
-  profile_args=""
-  for i in "${profile_array[@]}"
-  do
-    :
-    profile_args="$profile_args --profile $i"
-  done
-  
+  container_name_prefix="${profile}_${environment}_"
+  container_name_prefix_length=${#container_name_prefix}
+    
   # find all versions available in fabric
   availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
   availableVersionsArray=($availableVersions)
@@ -385,21 +324,31 @@ installApp(){
     echo "Only one version found, using version: $availableVersions"
     version=$availableVersions
   fi
+  
+  result=`$FUSE_CLIENT_SCRIPT container-list $container_name_prefix | grep -v "provision status" | awk '{print $1}' `
+  last_container=`echo $result | cut -d ' ' -f2`
+  last_index=${last_container:$container_name_prefix_length}
+  start_index=$(($last_index + 1))
 
-  readContainers application_count
-
+  readContainers $application_count
+  
+  ensemble_list=""
+  
   for ((j=1;j<=application_count;j++)) do
 
+    container_index=$(($last_index + $j))
+  
     server=`echo ${server_list[$j]} | awk '{print $1}'`
-    container=`echo ${server_list[$j]} | awk '{print $2}'`
-    username=`echo ${server_list[$j]} | awk '{print $3}'`
-    password=`echo ${server_list[$j]} | awk '{print $4}'`
+    username=`echo ${server_list[$j]} | awk '{print $2}'`
+    password=`echo ${server_list[$j]} | awk '{print $3}'`
+    container=${container_name_prefix}$container_index
+    ensemble_list="$ensemble_list $container"
     echo "Installing container: $container to server: $server with profile: $profile" 
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path $profile_args --version $version --user $username --password $hidden_password --jvm-opts '$app_container_jvm_props' $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path --profile $profile --version $version --user $username --password $hidden_password --jvm-opts '$app_container_jvm_props' $container"
     fi
-    result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  $profile_args --version $version --user $username --password $password --jvm-opts '$app_container_jvm_props' $container"`
-    echo -e $result
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  --profile $profile --version $version --user $username --password $password --jvm-opts '$app_container_jvm_props' $container"`
+    echo -e "$result"
     if [[ $result == Error* ]]; then
       echo "Error creating container: $container"
       break;
@@ -413,6 +362,14 @@ installApp(){
     waitUntilProvisioned $container
     
   done
+  echo "ensemble-add $ensemble_list"
+  if [ $DEBUG ]; then
+    echo $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+  fi
+  echo "Creating ensemble"
+  $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+
+  $FUSE_CLIENT_SCRIPT fabric:wait-for-provisioning
   
   echo "Current containers:"
   $FUSE_CLIENT_SCRIPT "fabric:container-list"
@@ -743,7 +700,7 @@ camelRouteStop(){
 
 containerUpgrade(){
 
-  chooseContainer
+  chooseoCntainer
   
   if [ $chosen_container == "ALL" ]; then
     upgradeAllContainers
