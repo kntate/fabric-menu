@@ -87,7 +87,7 @@ checkIfFabricCreated(){
   echo "Ensuring fabric has been created."
   command_result=`$FUSE_CLIENT_SCRIPT "fabric:container-list"`
   
-  if [[ $command_result == Command* ]]; then
+  if [[ $command_result == *Command* ]]; then
     echo "Fabric not installed. Should it be created? [y/n]"
     read create_fabric
     create_fabric=${create_fabric:-n}
