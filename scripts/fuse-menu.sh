@@ -20,7 +20,7 @@ bashtrap(){
 }
 
 # Logging
-logFile=$LOGS/fabric-menu-${DATE}.log
+logFile=$LOGS/fuse-menu-${DATE}.log
 cat /dev/null > $logFile
 tail -f $logFile | grep -v "presented unverified key:" &
 greppid=$!
@@ -36,15 +36,10 @@ set -e
 
 mainTitle="\E[0;33;42m\033[1m#### MAIN MENU ####\033[0m"
 echo -e "\n${mainTitle}\n"
-select root_menu in "installEnsemble" "installApp" "removeApp" "administration" "Exit"
+select root_menu in"installApp" "removeApp" "administration" "Exit"
 do
     echo "$root_menu";
     case $root_menu in
-    "installEnsemble")
-	installEnsemble
-	REPLY=""
-	echo -e "\n${mainTitle}\n"
-	;;
     "installApp")
 	installApp
 	REPLY=""
@@ -55,7 +50,6 @@ do
 	REPLY=""
 	echo -e "\n${mainTitle}\n"
 	;;
-
     "administration")
 	admin_title="\E[0;33;41m\033[1m#### Main Menu  > Administration ####\033[0m"
 	echo -e "\n${admin_title}\n"
