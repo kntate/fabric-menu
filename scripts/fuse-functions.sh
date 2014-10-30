@@ -93,7 +93,7 @@ checkIfFabricCreated(){
     create_fabric=${create_fabric:-n}
     if [ $create_fabric == "y" ]; then
       echo $FUSE_CLIENT_SCRIPT "fabric:create --wait-for-provisioning"
-      $FUSE_CLIENT_SCRIPT "fabric:create --clean --wait-for-provisioning"
+      $FUSE_CLIENT_SCRIPT "fabric:create --clean --profile fabric --verbose --wait-for-provisioning"
     else
       echo "Fabric will not be created, script exiting."
       exit
