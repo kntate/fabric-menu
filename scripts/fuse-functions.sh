@@ -746,7 +746,7 @@ camelRouteInfo(){
   
   # TODO - only select stopped routes
   output=`$CONTAINER_CONNECT_COMMAND camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
-  echo output: $output
+  echo -e "output: $output"
   route_list=($output)
   
   size=${#route_list[@]}
