@@ -765,7 +765,7 @@ camelRouteStop(){
 
 containerUpgrade(){
 
-  chooseoCntainer
+  chooseContainer
   
   if [ $chosen_container == "ALL" ]; then
     upgradeAllContainers
