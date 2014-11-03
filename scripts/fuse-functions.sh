@@ -417,7 +417,7 @@ installApp(){
   if [ $DEBUG ]; then
     echo $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
   fi
-  #$FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+  $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
 
   echo "Waiting for provisioning"
   $FUSE_CLIENT_SCRIPT fabric:wait-for-provisioning
