@@ -28,7 +28,7 @@ chooseApplication(){
   done
   
   getProfilesForApplication
-    
+       
 }
 
 getProfilesForApplication(){
@@ -66,6 +66,9 @@ chooseEnvironment(){
     echo "Environment chosen: $chosen_environment"
     break
   done
+    
+  container_name_prefix="${chosen_application}_${chosen_environment}_"
+  container_name_prefix_length=${#container_name_prefix}
 }
 
 checkIfFuseRunning(){
@@ -244,7 +247,7 @@ readContainers(){
 getAllContainerList(){
   echo "Retrieving container list from Fabric"
   filter=$1
-  output=`$FUSE_CLIENT_SCRIPT fabric:container-list $chosen_application | egrep -v "provision status$filter" | awk '{print $1}'`
+  output=`$FUSE_CLIENT_SCRIPT fabric:container-list $container_name_prefix | egrep -v "provision status$filter" | awk '{print $1}'`
   if [[ $output == Error* ]] || [[ $output == Command* ]] || [[ $output == Failed* ]]; then
     echo "Error obtaining fabric container list. Error msg:"
     echo -e $output
@@ -277,7 +280,7 @@ chooseContainer(){
   done
   
   if [ $index == 0 ]; then
-    echo "No matching conatiners found."
+    echo "No conatiners found for application $chosen_application in environment $chosen_environment."
     chosen_container=""
   else
     
@@ -345,10 +348,7 @@ installApp(){
   declare -a server_list
   echo "How many application containers should be created?"
   read application_count
-  
-  container_name_prefix="${chosen_application}_${chosen_environment}_"
-  container_name_prefix_length=${#container_name_prefix}
-  
+    
   result=`$FUSE_CLIENT_SCRIPT container-list $container_name_prefix | grep -v "provision status" | awk '{print $1}'`
   containers_array=( $result )
   last_index=${#containers_array[@]} # Get the length.                                          
@@ -424,10 +424,13 @@ installApp(){
 }
 
 stopContainer(){
-  # When chosing container, leave the * at the end of the root name because this container cannot be shutdown with container-stop.
-  # Instead osgi:shutdown should be used.
-  leave_star_on_root="leave_star_on_root"
-  chooseNonEnsembleContainer
+  
+  chooseContainer
+  
+  if [ -z "$chosen_container" ]; then
+    return
+  fi
+  
   if [ $chosen_container == "ALL" ]; then
     for i in "${container_array[@]}"
     do
@@ -467,6 +470,11 @@ stopContainer(){
 removeApp(){
 
   chooseContainer
+  
+  if [ -z "$chosen_container" ]; then
+    return
+  fi
+  
   if [ $chosen_container == "ALL" ]; then
     all_containers=`echo "${container_array[@]}"`
     echo "Removing container $all_containers from ensemble"
@@ -518,7 +526,6 @@ shutdownContainer(){
     do
       :
       pid=`$FUSE_CLIENT_SCRIPT fabric:container-info $container | grep "Process ID" | awk '{print $3}'`
-      echo pid: $pid
       
       if [ -z $pid ]; then
 	echo "Error getting status for container: $container, will not wait until shutdown is confirmed."
@@ -546,7 +553,12 @@ shutdownContainer(){
 }
 
 startContainer(){
-  chooseNonEnsembleContainer 
+  chooseContainer
+  
+  if [ -z "$chosen_container" ]; then
+    return
+  fi
+  
   if [ $chosen_container == "ALL" ]; then
     for i in "${container_array[@]}"
     do
@@ -575,7 +587,6 @@ startupContainer(){
     do
       :
       pid=`$FUSE_CLIENT_SCRIPT fabric:container-info $container | grep "Process ID" | awk '{print $3}'`
-      echo pid: $pid
     
       if [ $pid != "null" ]; then
 	echo "Container $container has started. Waiting for provisioning."
@@ -993,6 +1004,11 @@ environmentInfo(){
 
 sshToContainer(){
   chooseContainer "exclude_all_option"
+  
+  if [ -z "$chosen_container" ]; then
+    return
+  fi
+  
   host=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container | grep "Network Address:" | awk '{print $3}'`
    
   run_again="y"
