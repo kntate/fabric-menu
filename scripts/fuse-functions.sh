@@ -123,6 +123,8 @@ checkIfFuseRunning(){
   else
     FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT_PATH"
   fi
+  
+  CONTAINER_CONNECT_COMMAND=`echo $FUSE_CLIENT_SCRIPT "fabric:container-connect -u admin -p admin"`
 
   echo "Ensuring Fuse is running."
   # just run a simple command to make sure we can connect to fuse
@@ -309,7 +311,9 @@ chooseNonEnsembleContainer(){
 getAmqStatsForContainer(){
   container=$1
   echo "Stats for container: $container"
-  command_result=`$FUSE_CLIENT_SCRIPT fabric:container-connect $container activemq:dstat`
+  command=`echo "$CONTAINER_CONNECT_COMMAND $container activemq:dstat"`
+  echo $command
+  command_result=`exec $command`
   if [[ $command_result == *Command* ]]; then
     echo "Activemq command not found, container $container does not have a running broker."
   else
@@ -339,7 +343,7 @@ getContainerStats(){
   $FUSE_CLIENT_SCRIPT fabric:container-info $1
   
   if [ $includeFeatures == "y" ]; then
-     $FUSE_CLIENT_SCRIPT "fabric:container-connect -u admin -p admin $1 features:list -i"
+     $CONTAINER_CONNECT_COMMAND "$1 features:list -i"
   fi
 }
 
@@ -621,13 +625,13 @@ containerConnect(){
     read command
     
     if [ $DEBUG = true ]; then
-      echo "executing: $FUSE_CLIENT_SCRIPT fabric:container-connect -u admin -p admin $chosen_container $command"
+      echo "executing: $CONTAINER_CONNECT_COMMAND $chosen_container $command"
     else
       echo "Executing $command on container $chosen_container"
     fi
     echo "output:"
     
-    $FUSE_CLIENT_SCRIPT "fabric:container-connect -u admin -p admin $chosen_container $command"
+    $CONTAINER_CONNECT_COMMAND "$chosen_container $command"
     
     echo "Run another command? [y/n]"
     read run_again
@@ -638,7 +642,12 @@ containerConnect(){
 }
 
 activeMQStats(){
-  chooseNonEnsembleContainer
+  chooseContainer
+  
+  if [ -z "$chosen_container" ]; then
+    return
+  fi
+  
   if [ $chosen_container == "ALL" ]; then
     for i in "${container_array[@]}"
     do
@@ -710,10 +719,10 @@ removeProfileFromContainer(){
 }
 
 camelRouteStart(){
-  chooseNonEnsembleContainer "exclude_all_option"
+  chooseContainer "exclude_all_option"
   
   # TODO - only select stopped routes
-  output=`$FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
+  output=`$CONTAINER_CONNECT_COMMAND $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
   echo output: $output
   route_list=($output)
   
@@ -724,7 +733,7 @@ camelRouteStart(){
     select route in "${route_list[@]}"
     do
       echo "Starting route: $route"
-      $FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-start $route
+      $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-start $route
       break
     done
   else
@@ -733,10 +742,10 @@ camelRouteStart(){
 }
 
 camelRouteInfo(){
-  chooseNonEnsembleContainer "exclude_all_option"
+  chooseContainer "exclude_all_option"
   
   # TODO - only select stopped routes
-  output=`$FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
+  output=`$CONTAINER_CONNECT_COMMAND camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
   echo output: $output
   route_list=($output)
   
@@ -747,7 +756,7 @@ camelRouteInfo(){
     select route in "${route_list[@]}"
     do
       echo "Getting info for route: $route"
-      $FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-info $route
+      $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-info $route
       break
     done
   else
@@ -756,10 +765,10 @@ camelRouteInfo(){
 }
 
 camelRouteStop(){
-  chooseNonEnsembleContainer "exclude_all_option"
+  chooseContainer "exclude_all_option"
   
   # TODO - only select started routes
-  output=`$FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
+  output=`$CONTAINER_CONNECT_COMMAND $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
   echo output: $output
   route_list=($output)
   
@@ -770,7 +779,7 @@ camelRouteStop(){
     select route in "${route_list[@]}"
     do
       echo "Stopping route: $route"
-      $FUSE_CLIENT_SCRIPT container-connect $chosen_container camel:route-stop $route
+       $chosen_container camel:route-stop $route
       break
     done
   else
@@ -1040,7 +1049,7 @@ threadDump(){
   if [ -z "$chosen_container" ]; then
     echo "Unable to perform thread dump if there are no application containers"
   else
-    
+    activeMQStats
     # Get host and pid of chosen_container
     container_info=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container`
     host=`echo -e "$container_info" | grep "Network Address:" | awk '{print $3}'`
