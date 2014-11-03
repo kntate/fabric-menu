@@ -208,12 +208,21 @@ readContainers(){
   num_columns=2  
 
   default_container_name_prefix=${chosen_application}"_"
+  
+  default_hostname=""
  
   confirm_message="The following containers have been input with profile: $profile"
   for ((i=1;i<=num_rows;i++)) do
       
       echo "Enter container $i hostname:"
+      if [ -n "$default_hostname" ]; then
+	echo "Default: $default_hostname"
+      fi
       read hostname
+      if [ -n "$default_hostname" ]; then
+	hostname=${hostname:-$default_hostname}
+      fi
+      default_hostname=$hostname
       echo "Enter password for $FUSE_USER"
       readPassword
       
@@ -456,20 +465,38 @@ stopContainer(){
 }
 
 removeApp(){
-  echo "Which application?"
-  read chosen_app
-  chooseNonEnsembleContainer
+
+  chooseContainer
   if [ $chosen_container == "ALL" ]; then
+    all_containers=`echo "${container_array[@]}"`
+    echo "Removing container $all_containers from ensemble"
+    if [ $DEBUG = true ]; then
+      echo "$FUSE_CLIENT_SCRIPT fabric:ensemble-remove $all_containers"    
+    fi
+    $FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $all_containers"
     for i in "${container_array[@]}"
     do
       :
-      echo "$FUSE_CLIENT_SCRIPT container-delete $i"    
-      $FUSE_CLIENT_SCRIPT container-delete $i    
+      removeContainer $i    
     done        
   else
-    echo "$FUSE_CLIENT_SCRIPT container-delete $chosen_container"
-    $FUSE_CLIENT_SCRIPT container-delete $chosen_container    
+    echo "Removing container $chosen_container from ensemble"
+    if [ $DEBUG = true ]; then
+      echo "$FUSE_CLIENT_SCRIPT fabric:ensemble-remove $chosen_container"    
+    fi
+    $FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $chosen_container"
+    removeContainer $chosen_container  
   fi  
+}
+
+removeContainer(){
+  remove_container=$1
+
+  echo "Deleting container $remove_container"
+  if [ $DEBUG = true ]; then
+      echo "$FUSE_CLIENT_SCRIPT container-delete --force $remove_container"    
+  fi
+  $FUSE_CLIENT_SCRIPT "container-delete --force $remove_container"  
 }
 
 shutdownContainer(){
