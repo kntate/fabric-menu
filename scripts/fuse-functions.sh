@@ -216,7 +216,7 @@ readContainers(){
   
   default_hostname=""
  
-  confirm_message="The following containers have been input with profile: $profile"
+  confirm_message="The following containers have been input with profile: $profile_args"
   for ((i=1;i<=num_rows;i++)) do
       
       echo "Enter container $i hostname:"
@@ -417,7 +417,7 @@ installApp(){
   if [ $DEBUG ]; then
     echo $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
   fi
-  $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+  #$FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
 
   echo "Waiting for provisioning"
   $FUSE_CLIENT_SCRIPT fabric:wait-for-provisioning
@@ -660,7 +660,7 @@ activeMQStats(){
 }
 
 addProfile(){
-  chooseNonEnsembleContainer
+  chooseContainer
   
   echo "What profile to add?"
   read profile
@@ -679,6 +679,7 @@ addProfile(){
 addProfileToContainer(){
   container=$1
   profile=$2
+  echo "Adding profile $profile to container $container"
   $FUSE_CLIENT_SCRIPT "container-add-profile $container $profile"
   waitUntilProvisioned $container
   echo "Container $container updated:"
@@ -723,7 +724,10 @@ camelRouteStart(){
   
   # TODO - only select stopped routes
   output=`$CONTAINER_CONNECT_COMMAND $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
-  echo output: $output
+  if [[ "$output" == executing* ]]; then
+    echo "No Camel routes found on conatiner"
+    return
+  fi
   route_list=($output)
   
   size=${#route_list[@]}
@@ -745,8 +749,14 @@ camelRouteInfo(){
   chooseContainer "exclude_all_option"
   
   # TODO - only select stopped routes
-  output=`$CONTAINER_CONNECT_COMMAND camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
-  echo -e "output: $output"
+  output=`$CONTAINER_CONNECT_COMMAND "$chosen_container camel:route-list" | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
+  echo -e "$output"
+  if [[ "$output" == executing* ]]; then
+
+    echo "No Camel routes found on conatiner"
+    return
+  fi
+  
   route_list=($output)
   
   size=${#route_list[@]}
@@ -756,6 +766,7 @@ camelRouteInfo(){
     select route in "${route_list[@]}"
     do
       echo "Getting info for route: $route"
+      $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-list
       $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-info $route
       break
     done
@@ -769,7 +780,10 @@ camelRouteStop(){
   
   # TODO - only select started routes
   output=`$CONTAINER_CONNECT_COMMAND $chosen_container camel:route-list | grep -v Status | grep -v "Command not found" | grep -v "\\-\\-\\-" | awk '{print $2}'`
-  echo output: $output
+  if [[ "$output" == executing* ]]; then
+    echo "No Camel routes found on conatiner"
+    return
+  fi
   route_list=($output)
   
   size=${#route_list[@]}
@@ -779,7 +793,11 @@ camelRouteStop(){
     select route in "${route_list[@]}"
     do
       echo "Stopping route: $route"
-       $chosen_container camel:route-stop $route
+      stop_command=`echo "$CONTAINER_CONNECT_COMMAND $chosen_container camel:route-stop $route"`      
+      if [ $DEBUG = true ]; then      
+	echo $stop_command
+      fi
+      $stop_command
       break
     done
   else
