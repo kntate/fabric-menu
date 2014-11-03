@@ -994,18 +994,7 @@ environmentInfo(){
 sshToContainer(){
   chooseContainer "exclude_all_option"
   host=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container | grep "Network Address:" | awk '{print $3}'`
-  
-  first_profile=`$FUSE_CLIENT_SCRIPT fabric:container-list | grep -v "provision status" | grep $chosen_container | awk '{print $4}' | sed 's/,$//'`
-  # The container is an ensemble
-  if [ $first_profile == "default" ]; then
-    first_profile="fabric8"
-  fi
-  
-  echo "Enter OS username for host $host"
-  echo "Default [$first_profile]"
-  read username
-  username=${username:-$first_profile}
-  
+   
   run_again="y"
   
   while [ $run_again == "y" ];
@@ -1013,10 +1002,10 @@ sshToContainer(){
     echo "Enter command to run:"
     read command
     
-    echo "executing: ssh $username@$host $command"
+    echo "executing: ssh $FUSE_USER@$host $command"
     echo "output:"
     
-    ssh $username@$host $command
+    ssh $FUSE_USER@$host $command
     
     echo "Run another command? [y/n]"
     read run_again
