@@ -390,7 +390,7 @@ installApp(){
     password=`echo ${server_list[$j]} | awk '{print $2}'`
     container=${container_name_prefix}$container_index
     ensemble_list="$ensemble_list $container"
-    echo "Installing container: $container to server: $server with profile: $profile" 
+    echo "Installing container: $container to server: $server with profiles: $profile_args" 
     if [ $DEBUG = true ]; then
       echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path $profile_args --version $version --user $FUSE_USER --password $hidden_password --jvm-opts '$app_container_jvm_props' $container"
     fi
@@ -987,7 +987,7 @@ environmentInfo(){
   echo "Detailed info? (Default:n) [y/n]"
   read detailed
   detailed=${detailed:-n}
-  $FUSE_CLIENT_SCRIPT "fabric:container-list"
+  $FUSE_CLIENT_SCRIPT "fabric:container-list $container_name_prefix"
   
   if [ $detailed == "y" ]; then
     getAllContainerList
