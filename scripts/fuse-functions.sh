@@ -339,7 +339,7 @@ getContainerStats(){
   $FUSE_CLIENT_SCRIPT fabric:container-info $1
   
   if [ $includeFeatures == "y" ]; then
-     $FUSE_CLIENT_SCRIPT fabric:container-connect $1 "features:list -i"
+     $FUSE_CLIENT_SCRIPT "fabric:container-connect -u admin -p admin $1 features:list -i"
   fi
 }
 
@@ -620,10 +620,14 @@ containerConnect(){
     echo "Enter command to run:"
     read command
     
-    echo "executing: $FUSE_CLIENT_SCRIPT fabric:container-connect $chosen_container $command"
+    if [ $DEBUG = true ]; then
+      echo "executing: $FUSE_CLIENT_SCRIPT fabric:container-connect -u admin -p admin $chosen_container $command"
+    else
+      echo "Executing $command on container $chosen_container"
+    fi
     echo "output:"
     
-    $FUSE_CLIENT_SCRIPT fabric:container-connect $chosen_container $command
+    $FUSE_CLIENT_SCRIPT "fabric:container-connect -u admin -p admin $chosen_container $command"
     
     echo "Run another command? [y/n]"
     read run_again
