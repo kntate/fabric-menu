@@ -9,6 +9,8 @@ EAP_Scripts=${BaseDir};
 # Source the functions
 . $BaseDir/fuse-functions.sh
 
+application_properties_file="${BaseDir}/../properties/fuse-applications.properties"
+
 trap bashtrap EXIT
 bashtrap(){
   
@@ -30,13 +32,15 @@ exec 2>&1
 
 checkIfFuseRunning
 checkIfFabricCreated
+chooseApplication
+chooseEnvironment
 
 # Kill the script if there is an error
 set -e
 
-mainTitle="\E[0;33;42m\033[1m#### MAIN MENU ####\033[0m"
+mainTitle="\E[0;33;42m\033[1m#### MAIN MENU - $chosen_application - $chosen_environment ####\033[0m"
 echo -e "\n${mainTitle}\n"
-select root_menu in"installApp" "removeApp" "administration" "Exit"
+select root_menu in "installApp" "removeApp" "administration" "Exit"
 do
     echo "$root_menu";
     case $root_menu in
@@ -51,7 +55,7 @@ do
 	echo -e "\n${mainTitle}\n"
 	;;
     "administration")
-	admin_title="\E[0;33;41m\033[1m#### Main Menu  > Administration ####\033[0m"
+	admin_title="\E[0;33;41m\033[1m#### Main Menu - $chosen_application - $chosen_environment > Administration ####\033[0m"
 	echo -e "\n${admin_title}\n"
 	select admin_menu in "sshToContainer" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "environmentInfo" "containerStatus" "camel" "activeMQStats" "threadDump" "containerConnect" "rootMenu"
 	do
@@ -103,7 +107,7 @@ do
 		echo -e "\n${admin_title}\n"
 		;;		
 	    "camel")
-	      camel_title="\E[0;33;44m\033[1m#### Main Menu  > Administration > Camel ####\033[0m"
+	      camel_title="\E[0;33;44m\033[1m#### Main Menu - $chosen_application - $chosen_environment > Administration > Camel ####\033[0m"
 	      echo -e "\n${camel_title}\n"	    
 	      select camel_menu in "camelRouteStart" "camelRouteStop" "camelRouteInfo" "backToAdminMenu"
 	      do
