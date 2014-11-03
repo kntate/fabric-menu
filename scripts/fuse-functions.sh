@@ -1035,7 +1035,7 @@ sshToContainer(){
 
 threadDump(){
   # Choose an application container, don't allow for an "ALL" option
-  chooseNonEnsembleContainer "exclude_all_option"
+  chooseContainer "exclude_all_option"
   
   if [ -z "$chosen_container" ]; then
     echo "Unable to perform thread dump if there are no application containers"
@@ -1049,20 +1049,7 @@ threadDump(){
     if [ $pid == "null" ]; then
       echo "Error, Container is not running, cannot generate thread dump."
     else
-      
-      # Find first profile for the chosen_container
-      first_profile=`$FUSE_CLIENT_SCRIPT fabric:container-list | grep -v "provision status" | grep $chosen_container | awk '{print $4}' | sed 's/,$//'`
-      # The container is an ensemble
-      if [ $first_profile == "default" ]; then
-	first_profile="fabric8"
-      fi
-      
-      # Get os username, default to same as the first profile in the container
-      echo "Enter OS username for host $host"
-      echo "Default [$first_profile]"
-      read username
-      username=${username:-$first_profile}
-      
+                  
       # prompt for a local file to write thread dump to
       echo "Enter file path to write thread dump to:"
       default_file=$LOGS/thread-dump-`date +%m%d%Y-%H%M%S`.out
@@ -1071,7 +1058,7 @@ threadDump(){
       file=${file:-$default_file}
       
       # Run jstack command remotely
-      ssh_command="ssh $username@$host jstack $pid"
+      ssh_command="ssh $FUSE_USER@$host jstack $pid"
       echo "executing $ssh_command"
       ssh_output=`$ssh_command`
       
