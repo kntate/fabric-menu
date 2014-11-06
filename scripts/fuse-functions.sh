@@ -78,20 +78,28 @@ checkIfFuseRunning(){
     promptForFuseConnection
   fi
 
-  FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT_PATH -u $ENSEMBLE_SERVER_USER -h $ENSEMBLE_SERVER_HOST -a $ENSEMBLE_SERVER_PORT"
-      
-  # only include password if one is provided
-  if [ -n "$ENSEMBLE_SERVER_PASSWORD" ]; then
-    FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT -p $ENSEMBLE_SERVER_PASSWORD "
+  # build the fuse client script options
+  if [ $ENSEMBLE_SERVER_HOST == "localhost" ]; then
+    # if local do not need options
+    FUSE_CLIENT_SCRIPT=$FUSE_CLIENT_SCRIPT_PATH
+  else
+    # add user, host and port
+    FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT_PATH -u $ENSEMBLE_SERVER_USER -h $ENSEMBLE_SERVER_HOST -a $ENSEMBLE_SERVER_PORT"
+	
+    # only include password if one is provided
+    if [ -n "$ENSEMBLE_SERVER_PASSWORD" ]; then
+      FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT -p $ENSEMBLE_SERVER_PASSWORD "
+    fi
+    
+    CONTAINER_CONNECT_COMMAND=`echo $FUSE_CLIENT_SCRIPT "fabric:container-connect -u admin -p admin"`
   fi
-  
-  CONTAINER_CONNECT_COMMAND=`echo $FUSE_CLIENT_SCRIPT "fabric:container-connect -u admin -p admin"`
 
   echo "Ensuring Fuse is running."
   if [ $DEBUG == "true" ]; then
     echo "Using fuse connection string:"
     echo $FUSE_CLIENT_SCRIPT
   fi
+  
   # just run a simple command to make sure we can connect to fuse
   command_result=`$FUSE_CLIENT_SCRIPT "version"`
   script_exit_val=$?
