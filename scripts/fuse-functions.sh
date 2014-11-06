@@ -12,12 +12,10 @@ ZIP_FILENAME="fabric8-karaf-1.0.0.redhat-379.zip"
 hidden_password="******"
 
 # Make sure client script exists
-if [ ! -f "$FUSE_CLIENT_SCRIPT" ]; then
+if [ ! -f "$FUSE_CLIENT_SCRIPT_PATH" ]; then
   echo "Error: Fuse client script does not exist at $FUSE_CLIENT_SCRIPT_PATH"
   echo "Either set FUSE_HOME or fix fuse_home_default"
   exit 1
-else 	
-  echo "script exists"
 fi
 
 chooseApplication(){
@@ -30,7 +28,12 @@ chooseApplication(){
     break
   done
   
-  getProfilesForApplication
+  if [ -z "$chosen_application" ]; then
+    echo "Invalid choice, try again."
+    chooseApplication
+  else
+    getProfilesForApplication
+  fi
        
 }
 
@@ -69,9 +72,15 @@ chooseEnvironment(){
     echo "Environment chosen: $chosen_environment"
     break
   done
-    
-  container_name_prefix="${chosen_application}_${chosen_environment}_"
-  container_name_prefix_length=${#container_name_prefix}
+  
+  if [ -z "$chosen_environment" ]; then
+    echo "Invalid choice, try again."
+    chooseEnvironment
+  else
+    getProfilesForApplication
+    container_name_prefix="${chosen_application}_${chosen_environment}_"
+    container_name_prefix_length=${#container_name_prefix}
+  fi
 }
 
 checkIfFuseRunning(){
