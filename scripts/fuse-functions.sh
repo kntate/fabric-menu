@@ -310,7 +310,7 @@ chooseContainer(){
     if [ -z $leave_star_on_root ]; then
       container_array[$index]=`echo ${container_array[$index]} | sed 's/\*$//'`
     fi
-        
+    choice_list[$index]=${container_array[$index]}
     index=$(($index + 1))
   done
   
