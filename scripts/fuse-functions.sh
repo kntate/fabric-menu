@@ -1111,8 +1111,8 @@ rollbackSingleContainer(){
   do
     :
     # compare available version to the version on the container
-    compareVersions $curVersion $avail
-    if [ $newerVersion = "false" ];
+    compareVersions $avail $curVersion
+    if [ $newerVersion = "true" ];
     then
       olderVersions[$index]=$avail
       index=$[$index+1]
