@@ -1,4 +1,4 @@
-DEBUG=true
+#!/bin/bash 
 
 if [ -z $FUSE_HOME ]; then
   FUSE_HOME=$fuse_home_default
@@ -72,73 +72,84 @@ chooseEnvironment(){
 }
 
 checkIfFuseRunning(){
-  echo "Enter hostname of server running Fuse:"
-  if [ -z "$fuse_host" ]; then
-    default_fuse_host="localhost"
-  else
-    default_fuse_host=$fuse_host
-  fi
-  echo "Default: $default_fuse_host"
-  read fuse_host
-  fuse_host=${fuse_host:-$default_fuse_host}
-  
-  # If fuse is local host then just use defaults for the client script
-  if [ $fuse_host != "localhost" ]; then
-  
-    echo "Enter Fuse user:"
-    if [ -n "$fuse_user" ]; then
-      default_fuse_user=$fuse_user
-      echo "Default: $default_fuse_user"
-    fi
-    read fuse_user
-    fuse_user=${fuse_user:-$default_fuse_user}
-    
-    echo "Enter Fuse user password, or leave empty if no pw needed:"
-    if [ -n "$fuse_password" ]; then
-      default_fuse_password=$fuse_password
-      echo "Default: $default_fuse_password"
-    fi
-    read fuse_password    
-    fuse_password=${fuse_password:-$default_fuse_password}
 
-    
-    echo "Enter Fuse port:"
-    if [ -n "$fuse_port" ]; then
-      default_fuse_port=$fuse_port
-    else
-      default_fuse_port="8101"
-    fi
-    echo "Default: $default_fuse_port"
-    read fuse_port    
-    fuse_port=${fuse_port:-$default_fuse_port}
-    
-    FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT_PATH -u $fuse_user -h $fuse_host -a $fuse_port"
-    
-    # only include password if one is provided
-    if [ -n "$fuse_password" ]; then
-      FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT -p $fuse_password "
-    fi
-    
-    echo "Using Fuse client script options: $FUSE_CLIENT_SCRIPT"
-  else
-    FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT_PATH"
+  # only propmpt for fuse connection string if env properties are not set
+  if [ -z "$ENSEMBLE_SERVER_HOST" ]; then
+    promptForFuseConnection
+  fi
+
+  FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT_PATH -u $ENSEMBLE_SERVER_USER -h $ENSEMBLE_SERVER_HOST -a $ENSEMBLE_SERVER_PORT"
+      
+  # only include password if one is provided
+  if [ -n "$ENSEMBLE_SERVER_PASSWORD" ]; then
+    FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT -p $ENSEMBLE_SERVER_PASSWORD "
   fi
   
   CONTAINER_CONNECT_COMMAND=`echo $FUSE_CLIENT_SCRIPT "fabric:container-connect -u admin -p admin"`
 
   echo "Ensuring Fuse is running."
+  if [ $DEBUG == "true" ]; then
+    echo "Using fuse connection string:"
+    echo $FUSE_CLIENT_SCRIPT
+  fi
   # just run a simple command to make sure we can connect to fuse
   command_result=`$FUSE_CLIENT_SCRIPT "version"`
   script_exit_val=$?
   if [[ $script_exit_val != 0 ]]; then
     echo "Error connecting to Fuse, try again."
-    checkIfFuseRunning
+    promptForFuseConnection
   else    
     echo "Able to connect to Fuse."
-  fi
-  
+  fi 
   
 }
+
+promptForFuseConnection(){
+  echo "Enter hostname of server running Fuse:"
+  if [ -z "$ENSEMBLE_SERVER_HOST" ]; then
+    default_ENSEMBLE_SERVER_HOST="localhost"
+  else
+    default_ENSEMBLE_SERVER_HOST=$ENSEMBLE_SERVER_HOST
+  fi
+  echo "Default: $default_ENSEMBLE_SERVER_HOST"
+  read ENSEMBLE_SERVER_HOST
+  ENSEMBLE_SERVER_HOST=${ENSEMBLE_SERVER_HOST:-$default_ENSEMBLE_SERVER_HOST}
+  
+  # If fuse is local host then just use defaults for the client script
+  if [ $ENSEMBLE_SERVER_HOST != "localhost" ]; then
+  
+    echo "Enter Fuse user:"
+    if [ -n "$ENSEMBLE_SERVER_USER" ]; then
+      default_ENSEMBLE_SERVER_USER=$ENSEMBLE_SERVER_USER
+      echo "Default: $default_ENSEMBLE_SERVER_USER"
+    fi
+    read ENSEMBLE_SERVER_USER
+    ENSEMBLE_SERVER_USER=${ENSEMBLE_SERVER_USER:-$default_ENSEMBLE_SERVER_USER}
+    
+    echo "Enter Fuse user password, or leave empty if no pw needed:"
+    if [ -n "$ENSEMBLE_SERVER_PASSWORD" ]; then
+      default_ENSEMBLE_SERVER_PASSWORD=$ENSEMBLE_SERVER_PASSWORD
+      echo "Default: $default_ENSEMBLE_SERVER_PASSWORD"
+    fi
+    read ENSEMBLE_SERVER_PASSWORD    
+    ENSEMBLE_SERVER_PASSWORD=${ENSEMBLE_SERVER_PASSWORD:-$default_ENSEMBLE_SERVER_PASSWORD}
+    
+    echo "Enter Fuse port:"
+    if [ -n "$ENSEMBLE_SERVER_PORT" ]; then
+      default_ENSEMBLE_SERVER_PORT=$ENSEMBLE_SERVER_PORT
+    else
+      default_ENSEMBLE_SERVER_PORT="8101"
+    fi
+    echo "Default: $default_ENSEMBLE_SERVER_PORT"
+    read ENSEMBLE_SERVER_PORT    
+    ENSEMBLE_SERVER_PORT=${ENSEMBLE_SERVER_PORT:-$default_ENSEMBLE_SERVER_PORT}
+    
+    echo "Using Fuse client script options: $FUSE_CLIENT_SCRIPT"
+  else
+    FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT_PATH"
+  fi
+}
+
 
 checkIfFabricCreated(){
   echo "Ensuring fabric has been created."
@@ -249,14 +260,17 @@ readContainers(){
 getAllContainerList(){
   echo "Retrieving container list from Fabric"
   filter=$1
-  output=`$FUSE_CLIENT_SCRIPT fabric:container-list $container_name_prefix | egrep -v "provision status$filter" | awk '{print $1}'`
+  # Get list of conatinser with the correct prefix
+  # grep -vP "\x1b\x5b\x6d" strips off the ^]]m that shows up 
+  output=`$FUSE_CLIENT_SCRIPT fabric:container-list $container_name_prefix | grep -vP "\x1b\x5b\x6d" | egrep -v "provision status$filter" | awk '{print $1}'`
   if [[ $output == Error* ]] || [[ $output == Command* ]] || [[ $output == Failed* ]]; then
     echo "Error obtaining fabric container list. Error msg:"
     echo -e $output
     echo "Has fabric:create been run on the root?"
     exit
-  fi
-  container_array=($output)
+  fi 
+  output=`echo $output | sed -e 's/^ *//' -e 's/ *$//'`
+  container_array=( $output )
   filter=""
   chosen_app=''
 }
@@ -276,9 +290,8 @@ chooseContainer(){
     if [ -z $leave_star_on_root ]; then
       container_array[$index]=`echo ${container_array[$index]} | sed 's/\*$//'`
     fi
-    
-    choice_list[$index]=${container_array[$index]}
-    index=$[$index+1]
+        
+    index=$(($index + 1))
   done
   
   if [ $index == 0 ]; then
@@ -365,7 +378,7 @@ installApp(){
   fi
     
   # find all versions available in fabric
-  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
+  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list  | grep -vP "\x1b\x5b\x6d" | grep -v "# containers" | awk '{print $1}'`
   availableVersionsArray=( $availableVersions )
   
   versionCount=${#availableVersionsArray[@]}
@@ -489,7 +502,9 @@ removeApp(){
     for i in "${container_array[@]}"
     do
       :
-      removeContainer $i    
+      if [ -n "$i" ]; then
+	removeContainer $i    
+      fi
     done        
   else
     echo "Removing container $chosen_container from ensemble"

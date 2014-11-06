@@ -1,3 +1,5 @@
+#!/bin/bash 
+
 BaseDir=${0%/*}
 DATE=`date +%m%d%Y-%H%M%S`
 LOGS=${BaseDir}/../logs
