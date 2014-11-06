@@ -325,12 +325,18 @@ chooseContainer(){
     fi  
     
     echo "Enter number of the desired container: "
-    select chosen_container in "${choice_list[@]}"
+    chosen_container=""
+    while [ -z "$chosen_container" ];
     do
-      echo "Container chosen: $chosen_container"
-      break
+      select chosen_container in "${choice_list[@]}"
+      do
+	if [ -z "$chosen_container" ]; then
+	  echo "Invalid option, try again."
+	fi
+	break
+      done
     done
-    
+    echo "Container chosen: $chosen_container"
   fi
   choose_filter=""
 
@@ -405,11 +411,18 @@ installApp(){
   
   if [ $versionCount -gt 1 ];then 
     echo "What version should be used?"
-    select version in "${availableVersionsArray[@]}"
+    version=""
+    while [ -z "$version" ];
     do
-      echo "Using version: $version"      
-      break
+      select version in "${availableVersionsArray[@]}"
+      do
+	if [ -z "$version" ]; then
+	  echo "Invalid option, try again."
+	fi    
+	break
+      done
     done
+    echo "Using version: $version"  
   else # only older versions are found
     echo "Only one version found, using version: $availableVersions"
     version=$availableVersions
@@ -429,9 +442,9 @@ installApp(){
     ensemble_list="$ensemble_list $container"
     echo "Installing container: $container to server: $server with profiles: $profile_args" 
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path $profile_args --version $version --user $FUSE_USER --password $hidden_password --jvm-opts '$app_container_jvm_props' $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --resolver localip --path $container_path $profile_args --version $version --user $FUSE_USER --password $hidden_password --jvm-opts '$app_container_jvm_props' $container"
     fi
-    result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --path $container_path  $profile_args --version $version --user $FUSE_USER --password $password --jvm-opts '$app_container_jvm_props' $container"`
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --resolver localip --path $container_path  $profile_args --version $version --user $FUSE_USER --password $password --jvm-opts '$app_container_jvm_props' $container"`
     echo -e "$result"
     if [[ $result == Error* ]]; then
       echo "Error creating container: $container"
@@ -736,11 +749,18 @@ removeProfile(){
       output=`$FUSE_CLIENT_SCRIPT "container-info $chosen_container" | grep "Profiles:" | cut -d ":" -f2`
       profile_array=($output)
       echo "Enter number of the desired profile to remove: "
-      select profile in "${profile_array[@]}"
+      profile=""
+      while [ -z "$profile" ];
       do
-	echo "Removing profile: $profile"
-	break
+	select profile in "${profile_array[@]}"
+	do
+	  if [ -z "$profile" ]; then
+	    echo "Invalid option, try again."
+	  fi  
+	  break
+	done      
       done
+      echo "Removing profile: $profile"
       removeProfileFromContainer $chosen_container $profile
   fi
 }
@@ -769,12 +789,19 @@ camelRouteStart(){
   
   if [ $size -gt 0 ]; then
     echo "Enter number of the desired route to start: "
-    select route in "${route_list[@]}"
+    route=""
+    while [ -z "$route" ];
     do
-      echo "Starting route: $route"
-      $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-start $route
-      break
+      select route in "${route_list[@]}"
+      do
+	if [ -z "$route" ]; then
+	  echo "Invalid option, try again."
+	fi
+	break
+      done
     done
+    echo "Starting route: $route"
+    $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-start $route
   else
     echo "No routes found in container"
   fi
@@ -798,13 +825,20 @@ camelRouteInfo(){
   
   if [ $size -gt 0 ]; then
     echo "Enter number of the desired route to get info: "
-    select route in "${route_list[@]}"
+    route=""
+    while [ -z "$route" ];
     do
-      echo "Getting info for route: $route"
-      $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-list
-      $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-info $route
-      break
+      select route in "${route_list[@]}"
+      do
+	if [ -z "$route" ]; then
+	  echo "Invalid option, try again."
+	fi
+	break
+      done
     done
+    echo "Getting info for route: $route"
+    $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-list
+    $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-info $route
   else
     echo "No routes found in container"
   fi
@@ -825,16 +859,23 @@ camelRouteStop(){
   
   if [ $size -gt 0 ]; then
     echo "Enter number of the desired route to stop: "
-    select route in "${route_list[@]}"
+    route=""    
+    while [ -z "$route" ]; 
     do
-      echo "Stopping route: $route"
-      stop_command=`echo "$CONTAINER_CONNECT_COMMAND $chosen_container camel:route-stop $route"`      
-      if [ $DEBUG = true ]; then      
-	echo $stop_command
-      fi
-      $stop_command
-      break
+      select route in "${route_list[@]}"
+          do
+	  if [ -z "$route" ]; then
+	    echo "Invalid option, try again."
+	  fi
+	  break
+	done
     done
+    echo "Stopping route: $route"
+    stop_command=`echo "$CONTAINER_CONNECT_COMMAND $chosen_container camel:route-stop $route"`      
+    if [ $DEBUG = true ]; then      
+      echo $stop_command
+    fi
+    $stop_command
   else
     echo "No routes found in container"
   fi
@@ -858,37 +899,53 @@ upgradeAllContainers(){
   availableVersionsArray=($availableVersions)
     
   echo "What version should all containers be upgraded to?"
-  select version in "${availableVersionsArray[@]}"
+  version=""
+  while [ -z "$version" ];
   do
-    result=`$FUSE_CLIENT_SCRIPT "fabric:container-upgrade --all $version"`
-    echo "$result"
-    
-    # break out if an error occurred
-    if [[ $result == Error* ]] ; then
-      echo "Error performing container upgrade."      
+    select version in "${availableVersionsArray[@]}"
+    do
+      if [ -z "$version" ]; then
+	echo "Invalid option, try again."
+      fi
+      
       break
-    fi
-        
-    echo "Waiting for provisioning"
-    $FUSE_CLIENT_SCRIPT "fabric:wait-for-provisioning"
-    
-    echo "Accept changes? (Default:y) [y/n]:"
-    read acceptChanges  
-    acceptChanges=${acceptChanges:-y}
-    if [ $acceptChanges == "n" ]; then
-      echo "What version should all containers be rolled back to?"
+    done
+  done
+  echo "version chosen: $version"    
+  result=`$FUSE_CLIENT_SCRIPT "fabric:container-upgrade --all $version"`
+  echo "$result"
+  
+  # break out if an error occurred
+  if [[ $result == Error* ]] ; then
+    echo "Error performing container upgrade."      
+    break
+  fi
+      
+  echo "Waiting for provisioning"
+  $FUSE_CLIENT_SCRIPT "fabric:wait-for-provisioning"
+  
+  echo "Accept changes? (Default:y) [y/n]:"
+  read acceptChanges  
+  acceptChanges=${acceptChanges:-y}
+  if [ $acceptChanges == "n" ]; then
+  
+    echo "What version should all containers be rolled back to?"
+    rollbackVersion=""
+    while [ -z "$rollbackVersion" ];
+    do
       select rollbackVersion in "${availableVersionsArray[@]}"
       do
-	$FUSE_CLIENT_SCRIPT "fabric:container-rollback --all $rollbackVersion"
-	echo "Waiting for provisioning"
-	$FUSE_CLIENT_SCRIPT "fabric:wait-for-provisioning"
+	if [ -z "$rollbackVersion" ]; then
+	  echo "Invalid option, try again."
+	fi
 	
 	break
       done
-    fi
-    
-    break
-  done
+    done
+    $FUSE_CLIENT_SCRIPT "fabric:container-rollback --all $rollbackVersion"
+    echo "Waiting for provisioning"
+    $FUSE_CLIENT_SCRIPT "fabric:wait-for-provisioning"
+  fi
 }
 
 readPassword(){
@@ -938,28 +995,36 @@ upgradeSingleContainer(){
   if [ $index -gt 1 ];then # there are newer versions than that found on container available
     echo "Current version: $curVersion"
     echo "Select new version:"
-    select version in "${newerVersions[@]}"
+    version=""
+    while [ -z "$version" ];
     do
-      result=`$FUSE_CLIENT_SCRIPT "fabric:container-upgrade $version $chosen_container"`
-      echo "$result"
-    
-      # break out if an error occurred
-      if [[ $result == Error* ]] ; then
-	echo "Error performing container upgrade."      
+      select version in "${newerVersions[@]}"
+      do
+	if [ -z "$version" ]; then
+	  echo "Invalid option, try again."
+	fi
 	break
-      fi
-      
-      waitUntilProvisioned $chosen_container
-      echo "Accept changes? (Default:y) [y/n]:"
-      read acceptChanges  
-      acceptChanges=${acceptChanges:-y}
-      if [ $acceptChanges == "n" ]; then
-	$FUSE_CLIENT_SCRIPT "fabric:container-rollback $curVersion $chosen_container"
-	waitUntilProvisioned $chosen_container
-      fi
-      
-      break
+      done
     done
+    echo "version selected: $version"
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-upgrade $version $chosen_container"`
+    echo "$result"
+  
+    # break out if an error occurred
+    if [[ $result == Error* ]] ; then
+      echo "Error performing container upgrade."      
+      break
+    fi
+    
+    waitUntilProvisioned $chosen_container
+    echo "Accept changes? (Default:y) [y/n]:"
+    read acceptChanges  
+    acceptChanges=${acceptChanges:-y}
+    if [ $acceptChanges == "n" ]; then
+      $FUSE_CLIENT_SCRIPT "fabric:container-rollback $curVersion $chosen_container"
+      waitUntilProvisioned $chosen_container
+    fi
+      
   else # only older versions are found
     echo "No newer version than $curVersions found. Versions available:"
     printf "%s " "${availableVersionsArray[@]}"
@@ -984,23 +1049,32 @@ rollbackAllContainers(){
   availableVersionsArray=($availableVersions)
     
   echo "What version should all containers be rolled back to?"
-  select version in "${availableVersionsArray[@]}"
+  version=""
+  while [ -z "$version" ];
   do
-    result=`$FUSE_CLIENT_SCRIPT "fabric:container-rollback --all $version"`
-    echo "$result"
-    
-    # break out if an error occurred
-    if [[ $result == Error* ]] ; then
-      echo "Error performing container rollback."      
+    select version in "${availableVersionsArray[@]}"
+    do
+      if [ -z "$version" ]; then
+	echo "Invalid option, try again."
+      fi
+	  
       break
-    fi
-    
-    # rollback was successful if we got here, wait for provisioning
-    echo "Waiting for provisioning"
-    $FUSE_CLIENT_SCRIPT "fabric:wait-for-provisioning"
-        
-    break
+    done
   done
+  
+  echo "version selected: $version"
+  result=`$FUSE_CLIENT_SCRIPT "fabric:container-rollback --all $version"`
+  echo "$result"
+  
+  # break out if an error occurred
+  if [[ $result == Error* ]] ; then
+    echo "Error performing container rollback."      
+    break
+  fi
+  
+  # rollback was successful if we got here, wait for provisioning
+  echo "Waiting for provisioning"
+  $FUSE_CLIENT_SCRIPT "fabric:wait-for-provisioning"
 }
 
 rollbackSingleContainer(){
@@ -1028,21 +1102,30 @@ rollbackSingleContainer(){
   if [ $index -gt 1 ];then # there are older versions than that found on container available
     echo "Current version: $curVersion"
     echo "Select new version:"
-    select version in "${olderVersions[@]}"
+    version=""
+    while [ -z "$version" ];
     do
-      result=`$FUSE_CLIENT_SCRIPT "fabric:container-rollback $version $chosen_container"`
-      echo "$result"
-    
-      # break out if an error occurred
-      if [[ $result == Error* ]] ; then
-	echo "Error performing container rollback."      
+      select version in "${olderVersions[@]}"
+      do
+	if [ -z "$version" ]; then
+	  echo "Invalid option, try again."
+	fi
 	break
-      fi
-      
-      waitUntilProvisioned $chosen_container
-            
-      break
+      done
     done
+    
+    echo "version selected: $version"
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-rollback $version $chosen_container"`
+    echo "$result"
+  
+    # break out if an error occurred
+    if [[ $result == Error* ]] ; then
+      echo "Error performing container rollback."      
+      break
+    fi
+    
+    waitUntilProvisioned $chosen_container
+	  
   else # only older versions are found
     echo "No version older than $curVersion found. Versions available:"
     printf "%s " "${availableVersionsArray[@]}"
