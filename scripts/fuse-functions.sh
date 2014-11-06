@@ -90,7 +90,31 @@ checkIfFuseRunning(){
     promptForFuseConnection
   fi
 
-  # build the fuse client script options
+  connected="false"
+  while [ $connected != "true" ];
+  do
+    setScriptCommand    
+    echo "Ensuring Fuse is running."
+    if [ $DEBUG == "true" ]; then
+      echo "Using fuse connection string:"
+      echo $FUSE_CLIENT_SCRIPT
+    fi
+    
+    # just run a simple command to make sure we can connect to fuse
+    command_result=`$FUSE_CLIENT_SCRIPT "version" | grep -vP "\x1b\x5b\x6d"`
+    script_exit_val=$?
+    if [[ $script_exit_val != 0 ]]; then
+      echo "Error connecting to Fuse, try again."
+      promptForFuseConnection
+    else    
+      echo "Able to connect to Fuse."
+      connected="true"
+    fi 
+  done
+}
+
+setScriptCommand(){
+   # build the fuse client script options
   if [ $ENSEMBLE_SERVER_HOST == "localhost" ]; then
     # if local do not need options
     FUSE_CLIENT_SCRIPT=$FUSE_CLIENT_SCRIPT_PATH
@@ -103,25 +127,8 @@ checkIfFuseRunning(){
       FUSE_CLIENT_SCRIPT="$FUSE_CLIENT_SCRIPT -p $ENSEMBLE_SERVER_PASSWORD "
     fi
     
-    CONTAINER_CONNECT_COMMAND=`echo $FUSE_CLIENT_SCRIPT "fabric:container-connect -u admin -p admin"`
+    CONTAINER_CONNECT_COMMAND=`echo $FUSE_CLIENT_SCRIPT "fabric:container-connect -u $ENSEMBLE_SERVER_USER -p $ENSEMBLE_SERVER_PASSWORD"`
   fi
-
-  echo "Ensuring Fuse is running."
-  if [ $DEBUG == "true" ]; then
-    echo "Using fuse connection string:"
-    echo $FUSE_CLIENT_SCRIPT
-  fi
-  
-  # just run a simple command to make sure we can connect to fuse
-  command_result=`$FUSE_CLIENT_SCRIPT "version"`
-  script_exit_val=$?
-  if [[ $script_exit_val != 0 ]]; then
-    echo "Error connecting to Fuse, try again."
-    promptForFuseConnection
-  else    
-    echo "Able to connect to Fuse."
-  fi 
-  
 }
 
 promptForFuseConnection(){
@@ -173,7 +180,7 @@ promptForFuseConnection(){
 
 checkIfFabricCreated(){
   echo "Ensuring fabric has been created."
-  command_result=`$FUSE_CLIENT_SCRIPT "fabric:container-list"`
+  command_result=`$FUSE_CLIENT_SCRIPT "fabric:container-list" | grep -vP "\x1b\x5b\x6d"`
   
   if [[ $command_result == *Command* ]]; then
     echo "Fabric not installed. Should it be created? [y/n]"
@@ -896,7 +903,7 @@ containerUpgrade(){
 
 upgradeAllContainers(){
   # find all versions available in fabric
-  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
+  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -vP "\x1b\x5b\x6d" | grep -v "# containers" | awk '{print $1}'`
   availableVersionsArray=($availableVersions)
     
   echo "What version should all containers be upgraded to?"
@@ -913,7 +920,7 @@ upgradeAllContainers(){
     done
   done
   echo "version chosen: $version"    
-  result=`$FUSE_CLIENT_SCRIPT "fabric:container-upgrade --all $version"`
+  result=`$FUSE_CLIENT_SCRIPT "fabric:container-upgrade --all $version" | grep -vP "\x1b\x5b\x6d"`
   echo "$result"
   
   # break out if an error occurred
@@ -973,10 +980,11 @@ readPassword(){
 
 upgradeSingleContainer(){
   # find current version of the container
-  curVersion=`$FUSE_CLIENT_SCRIPT "container-info $chosen_container" | grep "Version:" | awk '{print $2}'`
+  echo "upgrade single"
+  curVersion=`$FUSE_CLIENT_SCRIPT "container-info $chosen_container" | grep -vP "\x1b\x5b\x6d" | grep "Version:" | awk '{print $2}'`
   
   # find all versions available in fabric
-  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
+  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -vP "\x1b\x5b\x6d" | grep -v "# containers" | awk '{print $1}'`
   availableVersionsArray=($availableVersions)
   
   # make list with only newer versions as you cannot upgrade to older version
@@ -986,7 +994,8 @@ upgradeSingleContainer(){
   do
     :
     # compare available version to the version on the container
-    if awk "BEGIN {exit !($avail > $curVersion)}"
+    compareVersions $curVersion $avail
+    if [ $newerVersion = "true" ];
     then
       newerVersions[$index]=$avail
       index=$[$index+1]
@@ -1008,7 +1017,10 @@ upgradeSingleContainer(){
       done
     done
     echo "version selected: $version"
-    result=`$FUSE_CLIENT_SCRIPT "fabric:container-upgrade $version $chosen_container"`
+    if [ $DEBUG == "true" ]; then
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-upgrade $version $chosen_container" | grep -vP "\x1b\x5b\x6d"
+    fi
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-upgrade $version $chosen_container" | grep -vP "\x1b\x5b\x6d"`
     echo "$result"
   
     # break out if an error occurred
@@ -1022,12 +1034,18 @@ upgradeSingleContainer(){
     read acceptChanges  
     acceptChanges=${acceptChanges:-y}
     if [ $acceptChanges == "n" ]; then
+      echo "Rolling back changes."
+      if [ $DEBUG == "true" ]; then
+	echo $FUSE_CLIENT_SCRIPT "fabric:container-rollback $curVersion $chosen_container"
+      fi
       $FUSE_CLIENT_SCRIPT "fabric:container-rollback $curVersion $chosen_container"
       waitUntilProvisioned $chosen_container
+    else
+      echo "Changes accepted."
     fi
       
   else # only older versions are found
-    echo "No newer version than $curVersions found. Versions available:"
+    echo "No newer version than $curVersion found. Versions available:"
     printf "%s " "${availableVersionsArray[@]}"
   fi
 }
@@ -1046,7 +1064,7 @@ containerRollback(){
 
 rollbackAllContainers(){
   # find all versions available in fabric
-  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
+  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -vP "\x1b\x5b\x6d" | grep -v "# containers" | awk '{print $1}'`
   availableVersionsArray=($availableVersions)
     
   echo "What version should all containers be rolled back to?"
@@ -1064,7 +1082,7 @@ rollbackAllContainers(){
   done
   
   echo "version selected: $version"
-  result=`$FUSE_CLIENT_SCRIPT "fabric:container-rollback --all $version"`
+  result=`$FUSE_CLIENT_SCRIPT "fabric:container-rollback --all $version" | grep -vP "\x1b\x5b\x6d"`
   echo "$result"
   
   # break out if an error occurred
@@ -1080,10 +1098,10 @@ rollbackAllContainers(){
 
 rollbackSingleContainer(){
   # find current version of the container
-  curVersion=`$FUSE_CLIENT_SCRIPT "container-info $chosen_container" | grep "Version:" | awk '{print $2}'`
+  curVersion=`$FUSE_CLIENT_SCRIPT "container-info $chosen_container" | grep -vP "\x1b\x5b\x6d" | grep "Version:" | awk '{print $2}'`
   
   # find all versions available in fabric
-  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -v "# containers" | awk '{print $1}'`
+  availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list | grep -vP "\x1b\x5b\x6d" | grep -v "# containers" | awk '{print $1}'`
   availableVersionsArray=($availableVersions)
   
   # make list with only older versions as you cannot rollback to a newer version
@@ -1116,7 +1134,7 @@ rollbackSingleContainer(){
     done
     
     echo "version selected: $version"
-    result=`$FUSE_CLIENT_SCRIPT "fabric:container-rollback $version $chosen_container"`
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-rollback $version $chosen_container" | grep -vP "\x1b\x5b\x6d"`
     echo "$result"
   
     # break out if an error occurred
@@ -1159,7 +1177,11 @@ sshToContainer(){
     return
   fi
   
-  host=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container | grep "Network Address:" | awk '{print $3}'`
+  host=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container | grep -vP "\x1b\x5b\x6d" | grep "Network Address:" | awk '{print $3}'`
+  # Fabric sometimes saves host w/o fully qualified name
+  if [ $host != *.* ]; then
+    host="${host}.dev.intranet"
+  fi
    
   run_again="y"
   
@@ -1179,6 +1201,48 @@ sshToContainer(){
   done
 }
 
+# Compares two versions. Will set $newerVersion variable to true if $1 is newer or false if it is older
+compareVersions(){
+  # it isn't newer if it is the same version
+  if [ $1 == $2 ]; then
+    newerVersion="false"
+    return
+  fi
+  
+  # split the versions into a space delimited string of the major then minor versions
+  current=`echo $1 | sed 's/\./ /g'`
+  check=`echo $2 | sed 's/\./ /g'`
+  echo ${current}done
+  echo ${check}done
+  # turn each version into an array with the major version the first element
+  currentArray=($current)
+  checkArray=($check)
+
+  size_of_cur=${#currentArray[@]}    
+  
+  for ((i=0;i<=size_of_cur-1;i++)) do
+  
+    # the current has more minor versions, so it is newer
+    if [ -z "${checkArray[$i]}" ];then
+      newerVersion="false"
+      return 
+    fi
+    
+    if [ ${currentArray[$i]} -gt ${checkArray[$i]} ]; then
+      newerVersion="false"
+      return 
+    fi
+    
+    if [ ${currentArray[$i]} -lt ${checkArray[$i]} ]; then
+      newerVersion="true"
+      return 
+    fi
+  done
+  
+  newerVersion="true"
+  
+}
+
 threadDump(){
   # Choose an application container, don't allow for an "ALL" option
   chooseContainer "exclude_all_option"
@@ -1188,8 +1252,12 @@ threadDump(){
   else
     activeMQStats
     # Get host and pid of chosen_container
-    container_info=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container`
+    container_info=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container | grep -vP "\x1b\x5b\x6d"`
     host=`echo -e "$container_info" | grep "Network Address:" | awk '{print $3}'`
+    # Fabric sometimes saves host w/o fully qualified name
+    if [ $host != *.* ]; then
+      host="${host}.dev.intranet"
+    fi
     pid=`echo -e "$container_info" | grep "Process ID:" | awk '{print $3}'`
     
     if [ $pid == "null" ]; then
