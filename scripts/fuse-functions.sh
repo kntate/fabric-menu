@@ -180,6 +180,7 @@ checkIfFabricCreated(){
     read create_fabric
     create_fabric=${create_fabric:-y}
     if [ $create_fabric == "y" ]; then
+      echo "Creating fabric."
       if [ $DEBUG = true ]; then
 	echo $FUSE_CLIENT_SCRIPT "fabric:create --clean --profile fabric --verbose --wait-for-provisioning"
       fi
