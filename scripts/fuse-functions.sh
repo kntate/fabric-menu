@@ -1111,7 +1111,8 @@ rollbackSingleContainer(){
   do
     :
     # compare available version to the version on the container
-    if awk "BEGIN {exit !($avail < $curVersion)}"
+    compareVersions $curVersion $avail
+    if [ $newerVersion = "false" ];
     then
       olderVersions[$index]=$avail
       index=$[$index+1]
@@ -1134,6 +1135,9 @@ rollbackSingleContainer(){
     done
     
     echo "version selected: $version"
+    if [ $DEBUG == "true" ]; then
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-rollback $version $chosen_container"
+    fi
     result=`$FUSE_CLIENT_SCRIPT "fabric:container-rollback $version $chosen_container" | grep -vP "\x1b\x5b\x6d"`
     echo "$result"
   
@@ -1212,8 +1216,6 @@ compareVersions(){
   # split the versions into a space delimited string of the major then minor versions
   current=`echo $1 | sed 's/\./ /g'`
   check=`echo $2 | sed 's/\./ /g'`
-  echo ${current}done
-  echo ${check}done
   # turn each version into an array with the major version the first element
   currentArray=($current)
   checkArray=($check)
