@@ -65,6 +65,7 @@ getApplicationList(){
 
 chooseEnvironment(){
   available_environments_list=( $available_environments )
+  available_environments_list+=('newEnvironment')
   
   echo "Enter number of the desired environment:"
   select chosen_environment in "${available_environments_list[@]}"
@@ -77,10 +78,24 @@ chooseEnvironment(){
     echo "Invalid choice, try again."
     chooseEnvironment
   else
-    getProfilesForApplication
-    container_name_prefix="${chosen_application}_${chosen_environment}_"
-    container_name_prefix_length=${#container_name_prefix}
+    if [ "$chosen_environment" = "newEnvironment" ]; then
+      newEnvironment
+      chooseEnvironment
+    else
+      getProfilesForApplication
+      container_name_prefix="${chosen_application}_${chosen_environment}_"
+      container_name_prefix_length=${#container_name_prefix}
+    fi
   fi
+}
+
+newEnvironment(){
+  echo "Input environment name:"
+  read environment
+  
+  old_available_environments=$available_environments
+  available_environments="$available_environments $environment"
+  sed -i "s/$old_available_environments/$available_environments/" $install_properties_file
 }
 
 checkIfFuseRunning(){
@@ -400,8 +415,7 @@ installApp(){
   echo "How many application containers (instances) should be created?"
   read application_count
     
-  result=`$FUSE_CLIENT_SCRIPT container-list $container_name_prefix | grep -vP "\x1b\x5b\x6d" | grep -v "provision status" | awk '{print $1}'`
-  echo -e "result: $result" 
+  result=`$FUSE_CLIENT_SCRIPT container-list $container_name_prefix | grep -vP "\x1b\x5b\x6d" | grep -v "provision status" | awk '{print $1}' | grep -vP "\x1b\x5b\x6d" `
   containers_array=( $result )
   last_container=`echo $result | rev | cut -d ' ' -f1 | rev`
   last_index=${last_container:$container_name_prefix_length}
