@@ -20,6 +20,8 @@ fi
 
 chooseApplication(){
   getApplicationList
+  
+  application_list+=('newApplication')
 
   echo "Enter number of the desired application:"
   select chosen_application in "${application_list[@]}"
@@ -32,9 +34,24 @@ chooseApplication(){
     echo "Invalid choice, try again."
     chooseApplication
   else
-    getProfilesForApplication
+    if [ "$chosen_application" = "newApplication" ]; then
+      addApplication
+      chooseApplication
+    else
+      getProfilesForApplication
+    fi
   fi
        
+}
+
+addApplication(){
+  echo "Enter name of application:"
+  read application_name
+  
+  echo "Enter profile for application $application_name:"
+  read application_profile
+  
+  echo "${application_name}=${application_profile}" >> $application_properties_file
 }
 
 getProfilesForApplication(){
