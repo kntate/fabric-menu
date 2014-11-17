@@ -400,7 +400,7 @@ installApp(){
   echo "How many application containers should be created?"
   read application_count
     
-  result=`$FUSE_CLIENT_SCRIPT container-list $container_name_prefix | grep -v "provision status" | awk '{print $1}'`
+  result=`$FUSE_CLIENT_SCRIPT container-list $container_name_prefix | grep -vP "\x1b\x5b\x6d" | grep -v "provision status" | awk '{print $1}'`
   containers_array=( $result )
   last_index=${#containers_array[@]} # Get the length.                                          
   
@@ -743,7 +743,7 @@ addProfileToContainer(){
 }
 
 removeProfile(){
-  chooseNonEnsembleContainer
+  chooseContainer
     
   if [ $chosen_container == "ALL" ]; then
     for i in "${container_array[@]}"
@@ -1182,10 +1182,6 @@ sshToContainer(){
   fi
   
   host=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container | grep -vP "\x1b\x5b\x6d" | grep "Network Address:" | awk '{print $3}'`
-  # Fabric sometimes saves host w/o fully qualified name
-  if [ $host != *.* ]; then
-    host="${host}.dev.intranet"
-  fi
    
   run_again="y"
   
@@ -1194,6 +1190,11 @@ sshToContainer(){
     echo "Enter command to run:"
     read command
     
+    if [ -z "$command" ]; then
+      echo "Error, you must enter a command. Try again."
+      continue
+    fi
+    
     echo "executing: ssh $FUSE_USER@$host $command"
     echo "output:"
     
@@ -1201,6 +1202,7 @@ sshToContainer(){
     
     echo "Run another command? [y/n]"
     read run_again
+    command=""
     
   done
 }
@@ -1251,15 +1253,11 @@ threadDump(){
   
   if [ -z "$chosen_container" ]; then
     echo "Unable to perform thread dump if there are no application containers"
-  else
-    activeMQStats
+  else    
     # Get host and pid of chosen_container
     container_info=`$FUSE_CLIENT_SCRIPT fabric:container-info $chosen_container | grep -vP "\x1b\x5b\x6d"`
     host=`echo -e "$container_info" | grep "Network Address:" | awk '{print $3}'`
-    # Fabric sometimes saves host w/o fully qualified name
-    if [ $host != *.* ]; then
-      host="${host}.dev.intranet"
-    fi
+   
     pid=`echo -e "$container_info" | grep "Process ID:" | awk '{print $3}'`
     
     if [ $pid == "null" ]; then
