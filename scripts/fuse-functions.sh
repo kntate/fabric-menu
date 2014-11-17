@@ -258,7 +258,7 @@ readContainers(){
   confirm_message="The following containers have been input with profile: $profile_args"
   for ((i=1;i<=num_rows;i++)) do
       
-      echo "Enter container $i hostname:"
+      echo "Enter container (instance) $i hostname:"
       if [ -n "$default_hostname" ]; then
 	echo "Default: $default_hostname"
       fi
@@ -397,12 +397,14 @@ getContainerStats(){
 installApp(){
 
   declare -a server_list
-  echo "How many application containers should be created?"
+  echo "How many application containers (instances) should be created?"
   read application_count
     
   result=`$FUSE_CLIENT_SCRIPT container-list $container_name_prefix | grep -vP "\x1b\x5b\x6d" | grep -v "provision status" | awk '{print $1}'`
+  echo -e "result: $result" 
   containers_array=( $result )
-  last_index=${#containers_array[@]} # Get the length.                                          
+  last_container=`echo $result | rev | cut -d ' ' -f1 | rev`
+  last_index=${last_container:$container_name_prefix_length}
   
   # To add to ensemble make sure there will be at least two containers
   num_containers=$(($last_index + $application_count))
@@ -680,6 +682,11 @@ containerConnect(){
     echo "Enter command to run:"
     read command
     
+    if [ -z "$command" ]; then
+      echo "Error, you must enter a command. Try again."
+      continue
+    fi
+    
     if [ $DEBUG = true ]; then
       echo "executing: $CONTAINER_CONNECT_COMMAND $chosen_container $command"
     else
@@ -691,6 +698,7 @@ containerConnect(){
     
     echo "Run another command? [y/n]"
     read run_again
+    command=""
     
   done
   
