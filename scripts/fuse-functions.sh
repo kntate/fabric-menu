@@ -107,8 +107,11 @@ chooseEnvironment(){
 }
 
 newEnvironment(){
+  default_profile="default"
   echo "Input environment name:"
+  echo "Default: $default_profile"
   read environment
+  environment=${environment:-$default_profile}
   
   old_available_environments=$available_environments
   available_environments="$available_environments $environment"
