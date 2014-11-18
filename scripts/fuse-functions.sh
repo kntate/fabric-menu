@@ -22,6 +22,7 @@ chooseApplication(){
   getApplicationList
   
   application_list+=('newApplication')
+  application_list+=('editApplication')
 
   echo "Enter number of the desired application:"
   select chosen_application in "${application_list[@]}"
@@ -37,11 +38,32 @@ chooseApplication(){
     if [ "$chosen_application" = "newApplication" ]; then
       addApplication
       chooseApplication
+    elif [ "$chosen_application" = "editApplication" ]; then
+      editApplication
+      chooseApplication
     else
       getProfilesForApplication
     fi
   fi
        
+}
+
+editApplication(){
+  getApplicationList
+  echo "Enter number of the desired application:"
+  select chosen_application in "${application_list[@]}"
+  do
+    echo "Application chosen: $chosen_application"
+    break
+  done
+  
+  profiles=`egrep ^$chosen_application= $application_properties_file | cut -f2 -d"="`
+  echo "Current profiles for application \"$chosen_application\": $profiles"
+  
+  echo "Enter new profiles for application:"
+  read newProfiles
+  
+  sed -i "s/$chosen_application=$profiles/$chosen_application=$newProfiles/" $application_properties_file
 }
 
 addApplication(){
@@ -66,6 +88,7 @@ getProfilesForApplication(){
 }
 
 getApplicationList(){
+  unset application_list  
     
   i=0
   while read line # Read a line
