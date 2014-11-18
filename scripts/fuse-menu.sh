@@ -40,7 +40,7 @@ chooseEnvironment
 
 mainTitle="\E[0;33;42m\033[1m#### MAIN MENU - $chosen_application - $chosen_environment ####\033[0m"
 echo -e "\n${mainTitle}\n"
-select root_menu in "installApp" "removeApp" "administration" "Exit"
+select root_menu in "installApp" "removeApp" "administration" "changeApplication" "changeEnvironment" "Exit"
 do
     echo "$root_menu";
     case $root_menu in
@@ -173,7 +173,20 @@ do
 	REPLY=""
 	echo -e "\n${mainTitle}\n"
 	;;	
- 
+	
+     "changeApplication")
+	chooseApplication
+	chooseEnvironment
+	mainTitle="\E[0;33;42m\033[1m#### MAIN MENU - $chosen_application - $chosen_environment ####\033[0m"
+	REPLY=""
+	echo -e "\n${mainTitle}\n"
+	;;
+    "changeEnvironment")
+	chooseEnvironment
+	mainTitle="\E[0;33;42m\033[1m#### MAIN MENU - $chosen_application - $chosen_environment ####\033[0m"
+	REPLY=""
+	echo -e "\n${mainTitle}\n"
+	;;
     "Exit")
 	break;
 	;;
