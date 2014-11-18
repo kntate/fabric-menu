@@ -86,7 +86,7 @@ editApplication(){
   done
 
   profiles=`egrep ^$chosen_application= $application_properties_file | cut -f2 -d"="`
-  echo "Current profiles for application \"$chosen_application\": $profiles"
+  echo "Current profiles for application \"$chosen_application\", profiles:"
   echo -e "\t${profiles}"
 
   echo "Enter new profiles for application:"
@@ -97,16 +97,34 @@ editApplication(){
 
 addApplication(){
   default_profile="default"
+  getApplicationList
 
   echo "Enter name of application:"
   read application_name
   
-  echo "Enter profile for application $application_name:"
-  echo "Default: $default_profile"
-  read application_profile  
-  application_profile=${application_profile:-$default_profile}
+  # determine if the environment already exists
+  application_exists="false"
+  for i in "${application_list[@]}"
+  do
+    if [ "$i" == "$application_name" ]; then
+      application_exists="true"
+    fi
+  done
+  
+  # only add the environment if it does not already exist
+  if [ "$application_exists" == "true" ]; then
+    echo "Error, application \"$application_name\" already exists. Please input a non-existent application."
+    addApplication
+  else
+    echo "Enter profile for application $application_name:"
+    echo "Default: $default_profile"
+    read application_profile  
+    application_profile=${application_profile:-$default_profile}
     
-  echo "${application_name}=${application_profile}" >> $application_properties_file
+    echo "Creating application: \"$application_name\" with profiles: \"$application_profile\""
+      
+    echo "${application_name}=${application_profile}" >> $application_properties_file
+  fi
 }
 
 getProfilesForApplication(){
@@ -208,6 +226,7 @@ newEnvironment(){
     echo "Error, environment \"$environment\" already exists. Please input a non-existent environment"
     newEnvironment
   else
+    echo "Adding environment $environment"
     old_available_environments=$available_environments
     available_environments="$available_environments $environment"
     sed -i "s/$old_available_environments/$available_environments/" $install_properties_file
