@@ -23,6 +23,7 @@ chooseApplication(){
   
   application_list+=('newApplication')
   application_list+=('editApplication')
+  application_list+=('removeApplication')
 
   echo "Enter number of the desired application:"
   select chosen_application in "${application_list[@]}"
@@ -41,11 +42,38 @@ chooseApplication(){
     elif [ "$chosen_application" = "editApplication" ]; then
       editApplication
       chooseApplication
+    elif [ "$chosen_application" = "removeApplication" ]; then
+      removeApplication
+      chooseApplication      
     else
       getProfilesForApplication
     fi
   fi
        
+}
+
+removeApplication(){
+  getApplicationList
+  echo "Enter number of the desired application:"
+  select chosen_application in "${application_list[@]}"
+  do
+    echo "Application chosen: $chosen_application"
+    break
+  done
+  
+  profiles=`egrep ^$chosen_application= $application_properties_file | cut -f2 -d"="`
+  echo "Are you sure you want to remove application \"$chosen_application\" with the following profiles?"
+  echo -e "\t${profiles}"
+  echo "Enter [y:n]"
+  
+  read should_remove
+  
+  if [ "$should_remove" == "y" ]; then
+    echo "Removing $chosen_application"
+    sed -i "s/$chosen_application=$profiles//" $application_properties_file
+  else
+    echo "Not removing application"
+  fi
 }
 
 editApplication(){
@@ -56,23 +84,28 @@ editApplication(){
     echo "Application chosen: $chosen_application"
     break
   done
-  
+
   profiles=`egrep ^$chosen_application= $application_properties_file | cut -f2 -d"="`
   echo "Current profiles for application \"$chosen_application\": $profiles"
-  
+  echo -e "\t${profiles}"
+
   echo "Enter new profiles for application:"
   read newProfiles
-  
+
   sed -i "s/$chosen_application=$profiles/$chosen_application=$newProfiles/" $application_properties_file
 }
 
 addApplication(){
+  default_profile="default"
+
   echo "Enter name of application:"
   read application_name
   
   echo "Enter profile for application $application_name:"
-  read application_profile
-  
+  echo "Default: $default_profile"
+  read application_profile  
+  application_profile=${application_profile:-$default_profile}
+    
   echo "${application_name}=${application_profile}" >> $application_properties_file
 }
 
@@ -106,6 +139,7 @@ getApplicationList(){
 chooseEnvironment(){
   available_environments_list=( $available_environments )
   available_environments_list+=('newEnvironment')
+  available_environments_list+=('removeEnvironment')
   
   echo "Enter number of the desired environment:"
   select chosen_environment in "${available_environments_list[@]}"
@@ -121,6 +155,9 @@ chooseEnvironment(){
     if [ "$chosen_environment" = "newEnvironment" ]; then
       newEnvironment
       chooseEnvironment
+    if [ "$chosen_environment" = "removeEnvironment" ]; then
+      removeEnvironment
+      chooseEnvironment      
     else
       getProfilesForApplication
       container_name_prefix="${chosen_application}_${chosen_environment}_"
@@ -129,12 +166,20 @@ chooseEnvironment(){
   fi
 }
 
-newEnvironment(){
+removeEnvironment(){
   default_profile="default"
   echo "Input environment name:"
   echo "Default: $default_profile"
   read environment
-  environment=${environment:-$default_profile}
+  
+  old_available_environments=$available_environments
+  available_environments="$available_environments $environment"
+  sed -i "s/$old_available_environments/$available_environments/" $install_properties_file
+}
+
+newEnvironment(){
+  echo "Input environment name:"
+  read environment
   
   old_available_environments=$available_environments
   available_environments="$available_environments $environment"
@@ -466,7 +511,7 @@ installApp(){
   # To add to ensemble make sure there will be at least two containers
   num_containers=$(($last_index + $application_count))
   if [ $num_containers -lt 2 ]; then
-    echo "Error, there must be at least two application containers in the environment."
+    echo "Error, there must be at least two application containers (instances) in the environment."
     return
   fi
     
