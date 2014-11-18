@@ -155,7 +155,7 @@ chooseEnvironment(){
     if [ "$chosen_environment" = "newEnvironment" ]; then
       newEnvironment
       chooseEnvironment
-    if [ "$chosen_environment" = "removeEnvironment" ]; then
+    elif [ "$chosen_environment" = "removeEnvironment" ]; then
       removeEnvironment
       chooseEnvironment      
     else
@@ -167,13 +167,25 @@ chooseEnvironment(){
 }
 
 removeEnvironment(){
-  default_profile="default"
-  echo "Input environment name:"
-  echo "Default: $default_profile"
-  read environment
+  available_environments_list=( $available_environments )
+  
+  echo "Enter number of the desired environment:"
+  select remove_environment in "${available_environments_list[@]}"
+  do
+    echo "Environment chosen to remove: $remove_environment"
+    break
+  done
+  
+  remove=($remove_environment)
+  available_environments_list=( "${available_environments_list[@]/$remove}" )
   
   old_available_environments=$available_environments
-  available_environments="$available_environments $environment"
+  
+  # Put space between all the environments 
+  available_environments=`printf -- '%s ' "${available_environments_list[@]}"`
+  
+  # strip all leading/trailing whitespace
+  available_environments=`echo $available_environments | sed -e 's/^ *//' -e 's/ *$//'`
   sed -i "s/$old_available_environments/$available_environments/" $install_properties_file
 }
 
@@ -181,9 +193,25 @@ newEnvironment(){
   echo "Input environment name:"
   read environment
   
-  old_available_environments=$available_environments
-  available_environments="$available_environments $environment"
-  sed -i "s/$old_available_environments/$available_environments/" $install_properties_file
+  # determine if the environment already exists
+  environment_exists="false"
+  available_environments_list=( $available_environments )
+  for i in "${available_environments_list[@]}"
+  do
+    if [ "$i" == "$environment" ]; then
+      environment_exists="true"
+    fi
+  done
+  
+  # only add the environment if it does not already exist
+  if [ "$environment_exists" == "true" ]; then
+    echo "Error, environment \"$environment\" already exists. Please input a non-existent environment"
+    newEnvironment
+  else
+    old_available_environments=$available_environments
+    available_environments="$available_environments $environment"
+    sed -i "s/$old_available_environments/$available_environments/" $install_properties_file
+  fi
 }
 
 checkIfFuseRunning(){
