@@ -213,7 +213,7 @@ promptForFuseConnection(){
 checkIfFabricCreated(){
   echo "Ensuring fabric has been created."
   
-  fabric_installed=`$FUSE_CLIENT_SCRIPT config:list "(service.pid=io.fabric8.agent)" | grep -vP "\x1b\x5b\x6d"`
+  fabric_installed=`$FUSE_CLIENT_SCRIPT config:list | grep "service.pid = io.fabric8.agent"`
   
   if [ -z "$fabric_installed" ]; then
     echo "Fabric not installed. Should it be created? [y/n]"
@@ -238,8 +238,7 @@ checkIfFabricCreated(){
     else
       echo "Fabric has been created."
     fi  
-  fi
-  
+  fi 
  
 }
 
