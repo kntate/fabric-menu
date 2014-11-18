@@ -212,9 +212,10 @@ promptForFuseConnection(){
 
 checkIfFabricCreated(){
   echo "Ensuring fabric has been created."
-  command_result=`$FUSE_CLIENT_SCRIPT "fabric:container-list" | grep -vP "\x1b\x5b\x6d"`
   
-  if [[ $command_result == *Command* ]]; then
+  fabric_installed=`$FUSE_CLIENT_SCRIPT config:list "(service.pid=io.fabric8.agent)" | grep -vP "\x1b\x5b\x6d"`
+  
+  if [ -z "$fabric_installed" ]; then
     echo "Fabric not installed. Should it be created? [y/n]"
     read create_fabric
     create_fabric=${create_fabric:-y}
@@ -229,8 +230,17 @@ checkIfFabricCreated(){
       exit
     fi
   else
-    echo "Fabric has been created."
+    fabric_connected=`$FUSE_CLIENT_SCRIPT "fabric:container-list" | grep -vP "\x1b\x5b\x6d"`
+    
+    if [[ $command_result == *Command* ]]; then
+      echo "Error Fabric is not connected. There has been a system error, please contact a System Administrator."
+      exit 1
+    else
+      echo "Fabric has been created."
+    fi  
   fi
+  
+ 
 }
 
 waitUntilProvisioned(){
@@ -284,21 +294,12 @@ readContainers(){
   num_columns=2  
 
   default_container_name_prefix=${chosen_application}"_"
-  
-  default_hostname=""
- 
+   
   confirm_message="The following containers have been input with profile: $profile_args"
   for ((i=1;i<=num_rows;i++)) do
       
       echo "Enter container (instance) $i hostname:"
-      if [ -n "$default_hostname" ]; then
-	echo "Default: $default_hostname"
-      fi
       read hostname
-      if [ -n "$default_hostname" ]; then
-	hostname=${hostname:-$default_hostname}
-      fi
-      default_hostname=$hostname
       echo "Enter password for $FUSE_USER"
       readPassword
       
@@ -1010,7 +1011,7 @@ readPassword(){
       break
     fi
     
-    echo "Passwords do not match, try again"
+    echo "Passwords do not match, try again."
     
   done
   
@@ -1257,6 +1258,7 @@ compareVersions(){
   # split the versions into a space delimited string of the major then minor versions
   current=`echo $1 | sed 's/\./ /g'`
   check=`echo $2 | sed 's/\./ /g'`
+  
   # turn each version into an array with the major version the first element
   currentArray=($current)
   checkArray=($check)
