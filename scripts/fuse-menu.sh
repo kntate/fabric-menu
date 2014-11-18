@@ -12,6 +12,7 @@ EAP_Scripts=${BaseDir};
 . $BaseDir/fuse-functions.sh
 
 application_properties_file="${BaseDir}/../properties/fuse-applications.properties"
+install_properties_file="${BaseDir}/../properties/fuse-install.properties"
 
 trap bashtrap EXIT
 bashtrap(){
@@ -36,9 +37,6 @@ checkIfFuseRunning
 checkIfFabricCreated
 chooseApplication
 chooseEnvironment
-
-# Kill the script if there is an error
-set -e
 
 mainTitle="\E[0;33;42m\033[1m#### MAIN MENU - $chosen_application - $chosen_environment ####\033[0m"
 echo -e "\n${mainTitle}\n"
