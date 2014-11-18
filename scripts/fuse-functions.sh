@@ -194,17 +194,26 @@ removeEnvironment(){
     break
   done
   
-  remove=($remove_environment)
-  available_environments_list=( "${available_environments_list[@]/$remove}" )
+  echo "Are you sure you want to delete environment: $remove_environment"
+  echo "Enter [y/n]"
+  read should_remove
   
-  old_available_environments=$available_environments
-  
-  # Put space between all the environments 
-  available_environments=`printf -- '%s ' "${available_environments_list[@]}"`
-  
-  # strip all leading/trailing whitespace
-  available_environments=`echo $available_environments | sed -e 's/^ *//' -e 's/ *$//'`
-  sed -i "s/$old_available_environments/$available_environments/" $install_properties_file
+  if [ "$should_remove" == "y" ]; then
+    echo "Removing environment $remove_environment"
+    remove=($remove_environment)
+    available_environments_list=( "${available_environments_list[@]/$remove}" )
+    
+    old_available_environments=$available_environments
+    
+    # Put space between all the environments 
+    available_environments=`printf -- '%s ' "${available_environments_list[@]}"`
+    
+    # strip all leading/trailing whitespace
+    available_environments=`echo $available_environments | sed -e 's/^ *//' -e 's/ *$//'`
+    sed -i "s/$old_available_environments/$available_environments/" $install_properties_file
+  else
+    echo "Environment $remove_environment will not be deleted"
+  fi
 }
 
 newEnvironment(){
@@ -350,7 +359,7 @@ checkIfFabricCreated(){
   else
     fabric_connected=`$FUSE_CLIENT_SCRIPT "fabric:container-list" | grep -vP "\x1b\x5b\x6d"`
     
-    if [[ $command_result == *Command* ]]; then
+    if [[ $fabric_connected == *Command* ]]; then
       echo "Error Fabric is not connected. There has been a system error, please contact a System Administrator."
       exit 1
     else
@@ -473,7 +482,7 @@ chooseContainer(){
   done
   
   if [ $index == 0 ]; then
-    echo "No conatiners found for application $chosen_application in environment $chosen_environment."
+    echo "No containers found for application $chosen_application in environment $chosen_environment."
     chosen_container=""
   else
     
@@ -550,6 +559,7 @@ installApp(){
   echo "How many application containers (instances) should be created?"
   read application_count
     
+  # get list of containers that start with application_env_
   result=`$FUSE_CLIENT_SCRIPT container-list $container_name_prefix | grep -vP "\x1b\x5b\x6d" | grep -v "provision status" | awk '{print $1}' | grep -vP "\x1b\x5b\x6d" `
   containers_array=( $result )
   last_container=`echo $result | rev | cut -d ' ' -f1 | rev`
@@ -699,6 +709,20 @@ removeApp(){
       fi
     done        
   else
+  
+    # get list of containers that start with application_env_
+    result=`$FUSE_CLIENT_SCRIPT container-list $container_name_prefix | grep -vP "\x1b\x5b\x6d" | grep -v "provision status" | awk '{print $1}' | grep -vP "\x1b\x5b\x6d" `
+    containers_array=( $result )
+    last_container=`echo $result | rev | cut -d ' ' -f1 | rev`
+    last_index=${last_container:$container_name_prefix_length}
+    
+    # To add to ensemble make sure there will be at least two containers
+    num_containers=$(($last_index - 1))
+    if [ $num_containers -lt 2 ]; then
+      echo "Error, there must be at least two application containers (instances) in the environment. Container cannot be removed."
+      return
+    fi
+  
     echo "Removing container $chosen_container from ensemble"
     if [ $DEBUG = true ]; then
       echo "$FUSE_CLIENT_SCRIPT fabric:ensemble-remove $chosen_container"    
