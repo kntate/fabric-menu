@@ -131,11 +131,14 @@ getProfilesForApplication(){
   application=$1
   profiles=`egrep ^$chosen_application= $application_properties_file | cut -f2 -d"="`
   profile_list=( $profiles )
-  profile_args=""
+  managed_profile_args=""
   for profile in "${profile_list[@]}"
   do
-    profile_args="$profile_args --profile $profile"
+    managed_profile_args="$managed_profile_args --profile $profile"
   done
+  
+  # add fabric profile into a container that will be added to the ensemble
+  ensemble_profile_args="$managed_profile_args --profile fabric"
 }
 
 getApplicationList(){
@@ -573,7 +576,14 @@ installApp(){
 }
 
 createContainers(){
-  echo "How many application containers (instances) should be created?"
+  
+   if [ "$ensemble_container" == "y" ]; then
+      profile_args="$ensemble_profile_args"
+      echo "How many Zookeeper Registry containers (instances) should be created?"
+   else
+      profile_args="$managed_profile_args"
+      echo "How many Fabric managed application containers (instances) should be created?"
+   fi
   read application_count   
   
   if [ "$ensemble_container" == "y" ]; then
@@ -581,7 +591,9 @@ createContainers(){
     getEnsembleCount
     num_ensemble_containers=$(($ensemble_count + $application_count))
     if [ $num_ensemble_containers -lt 3 ]; then
-      echo "Error, there must be at least three application containers (instances) in the environment. Please try again with more containers."
+      echo "Error, there must be at least three Zookeeper Registry containers (instances)."
+      echo "Adding $application_count Zookeeper Registry containers would give a total of $num_ensemble_containers Zookeeper Registry containers"
+      echo "Please try again with more containers."
       createContainers
       return
     fi
@@ -590,7 +602,7 @@ createContainers(){
     rem=$(( $num_ensemble_containers % 2 ))
     if [ $rem -eq 0 ]; then
       echo "Warning, it is recommended to have an odd number of ensemble servers."
-      echo "Adding $application_count containers would bring the total ensemble count to $num_ensemble_containers"
+      echo "Adding $application_count containers would bring the total ensemble count to ${num_ensemble_containers}."
       echo "Are you sure you want to proceed? [y/n]"
       read proceed
       
@@ -602,8 +614,9 @@ createContainers(){
 	echo "Proceeding with even number of ensemble containers."
       fi
     fi
+    echo "Will add $application_count instances to the list of Zookeeper Registry containers"
   else
-    echo "Creating $application_count managed instances."
+    echo "Will create $application_count managed instances."
   fi
    
   # get list of containers that start with application_env_
@@ -693,6 +706,12 @@ createContainers(){
   # Display all the containers to the user
   echo "Current containers:"
   $FUSE_CLIENT_SCRIPT "fabric:container-list $container_name_prefix"
+  
+  # display the updated ensemble list if the containers were added to the ensemble
+  if [ "$ensemble_container" == "y" ]; then
+    echo "Current list of Zookeeper Registry containers:"
+    $FUSE_CLIENT_SCRIPT ensemble-list
+  fi
 }
 
 stopContainer(){
