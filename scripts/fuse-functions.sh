@@ -763,6 +763,7 @@ removeApp(){
   chooseContainer
   
   if [ -z "$chosen_container" ]; then
+    echo "Error, no container choosen"
     return
   fi
   
@@ -771,6 +772,7 @@ removeApp(){
   
   if [ $chosen_container == "ALL" ]; then
     ensemble_list=""
+    remove_from_ensemble_count=0
     for i in "${container_array[@]}"
     do
       :
@@ -778,8 +780,19 @@ removeApp(){
       ensemble_member=`echo -e "$full_ensemble_list" | egrep "^${i}$"`
       if [ -n "$ensemble_member" ]; then
 	ensemble_list="$ensemble_list $i"
+	remove_from_ensemble_count=$[$remove_from_ensemble_count + 1]
       fi
     done
+    
+    # Make sure removing the ensemble containers would not put Fabric in an unallowable state
+    getEnsembleCount
+    new_ensemble_count=$[${ensemble_count}-${remove_from_ensemble_count}]
+    if [ $new_ensemble_count -eq 2 ]; then
+      echo "Error, the environment cannot contain just 2 Zookeeper Registry members. Container cannot be removed."
+      echo "Current list of Zookeeper Registry members"
+      $FUSE_CLIENT_SCRIPT fabric:ensemble-list
+      return
+    fi
     
     # Only perform ensemble-remove if there are ensemble containers
     if [ -z "$ensemble_list" ]; then
@@ -812,7 +825,7 @@ removeApp(){
       # To add to ensemble make sure there will be at least two containers
       num_containers=$(($ensemble_count - 1))
       if [ $num_containers -eq 2 ]; then
-	echo "Error, there environment cannot contain just 2 Zookeeper Registry members. Container cannot be removed."
+	echo "Error, the environment cannot contain just 2 Zookeeper Registry members. Container cannot be removed."
 	echo "Current list of Zookeeper Registry members"
 	$FUSE_CLIENT_SCRIPT fabric:ensemble-list
 	return
