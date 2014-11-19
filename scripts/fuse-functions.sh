@@ -349,9 +349,9 @@ checkIfFabricCreated(){
     if [ $create_fabric == "y" ]; then
       echo "Creating fabric."
       if [ $DEBUG = true ]; then
-	echo $FUSE_CLIENT_SCRIPT "fabric:create --clean --profile fabric --verbose --wait-for-provisioning"
+	echo $FUSE_CLIENT_SCRIPT "fabric:create --clean --resolver localip --profile fabric --verbose --wait-for-provisioning"
       fi
-      $FUSE_CLIENT_SCRIPT "fabric:create --clean --profile fabric --verbose --wait-for-provisioning"
+      $FUSE_CLIENT_SCRIPT "fabric:create --clean --resolver localip --profile fabric --verbose --wait-for-provisioning"
     else
       echo "Fabric will not be created, script exiting."
       exit
@@ -418,20 +418,22 @@ readContainers(){
   
   num_rows=$1
   num_columns=2  
-
-  default_container_name_prefix=${chosen_application}"_"
    
   confirm_message="The following containers have been input with profile: $profile_args"
   for ((i=1;i<=num_rows;i++)) do
       
       echo "Enter container (instance) $i hostname:"
       read hostname
-      echo "Enter password for $FUSE_USER"
-      readPassword
       
-      confirm_message="$confirm_message\n\tContainer $i, hostname: $hostname, username: $FUSE_USER, password: $hidden_password"
+      # index of container takes into account the last index of the pre-existent containers
+      container_index=$(($last_index + $i)) 
       
-      server_list[$i]="$hostname $password"
+      # name of container is the prefix with the index
+      container_name=${container_name_prefix}$container_index
+           
+      confirm_message="$confirm_message\n\tContainer $i, hostname: $hostname, username: $FUSE_USER, instance name: $container_name"
+      
+      server_list[$i]="$hostname $container_name"
 
   done
   confirm_message="$confirm_message\nAre these values correct? [y/n]"
@@ -553,31 +555,70 @@ getContainerStats(){
   fi
 }
 
+# Sets the number of ensemble containers to the $ensemble_count variable
+getEnsembleCount(){
+ ensemble_count=`$FUSE_CLIENT_SCRIPT ensemble-list | grep -v "\[id\]" | grep -vP "\x1b\x5b\x6d" | wc -l`
+}
+
 installApp(){
+  
+  echo "Should the containers also be Zookeeper Registry containers? [y/n]"
+  echo -e "\tDefault: n"
+  read ensemble_container
+  ensemble_container=${ensemble_container:-n}
 
   declare -a server_list
+
+  createContainers
+}
+
+createContainers(){
   echo "How many application containers (instances) should be created?"
-  read application_count
+  read application_count   
+  
+  if [ "$ensemble_container" == "y" ]; then
+    # To add to ensemble make sure there will be at least three containers
+    getEnsembleCount
+    num_ensemble_containers=$(($ensemble_count + $application_count))
+    if [ $num_ensemble_containers -lt 3 ]; then
+      echo "Error, there must be at least three application containers (instances) in the environment. Please try again with more containers."
+      createContainers
+      return
+    fi
     
+    # It is recommended to have odd number of containers, so give warning and a chance to start over
+    rem=$(( $num_ensemble_containers % 2 ))
+    if [ $rem -eq 0 ]; then
+      echo "Warning, it is recommended to have an odd number of ensemble servers."
+      echo "Adding $application_count containers would bring the total ensemble count to $num_ensemble_containers"
+      echo "Are you sure you want to proceed? [y/n]"
+      read proceed
+      
+      if [ "$proceed" == "n" ]; then
+	echo "Trying again with a different number of containers."
+	createContainers
+	return
+      else
+	echo "Proceeding with even number of ensemble containers."
+      fi
+    fi
+  else
+    echo "Creating $application_count managed instances."
+  fi
+   
   # get list of containers that start with application_env_
   result=`$FUSE_CLIENT_SCRIPT container-list $container_name_prefix | grep -vP "\x1b\x5b\x6d" | grep -v "provision status" | awk '{print $1}' | grep -vP "\x1b\x5b\x6d" `
-  containers_array=( $result )
-  last_container=`echo $result | rev | cut -d ' ' -f1 | rev`
-  last_index=${last_container:$container_name_prefix_length}
+  containers_array=( $result ) # list of all containers for the combo of env/app
+  last_container=`echo $result | rev | cut -d ' ' -f1 | rev` # returns the name of the last container
+  last_index=${last_container:$container_name_prefix_length} # index of the last container, strips off the "application_env_" prefix, what remains is the index
   
-  # To add to ensemble make sure there will be at least two containers
-  num_containers=$(($last_index + $application_count))
-  if [ $num_containers -lt 2 ]; then
-    echo "Error, there must be at least two application containers (instances) in the environment."
-    return
-  fi
-    
   # find all versions available in fabric
   availableVersions=`$FUSE_CLIENT_SCRIPT fabric:version-list  | grep -vP "\x1b\x5b\x6d" | grep -v "# containers" | awk '{print $1}'`
   availableVersionsArray=( $availableVersions )
   
   versionCount=${#availableVersionsArray[@]}
   
+  # prompt for the version if multiple versions are found
   if [ $versionCount -gt 1 ];then 
     echo "What version should be used?"
     version=""
@@ -597,49 +638,61 @@ installApp(){
     version=$availableVersions
   fi
 
+  # get the user input for container host, etc
   readContainers $application_count
   
+  # only needed when installing a set of ensemble containers
   ensemble_list=""
   
+  # Loop through and create all the containers
   for ((j=1;j<=application_count;j++)) do
-
-    container_index=$(($last_index + $j))
   
-    server=`echo ${server_list[$j]} | awk '{print $1}'`
-    password=`echo ${server_list[$j]} | awk '{print $2}'`
-    container=${container_name_prefix}$container_index
+    # input from user hostname selection
+    server=`echo ${server_list[$j]} | awk '{print $1}'` 
+    
+    # name of container is the prefix with the index
+    container=`echo ${server_list[$j]} | awk '{print $2}'` 
+    
+    # only needed when installing a set of ensemble containers
     ensemble_list="$ensemble_list $container"
+    
+    # install the container
     echo "Installing container: $container to server: $server with profiles: $profile_args" 
     if [ $DEBUG = true ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --resolver localip --path $container_path $profile_args --version $version --user $FUSE_USER --password $hidden_password --jvm-opts '$app_container_jvm_props' $container"
+      echo $FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --resolver localip --path $container_path $profile_args --version $version --user $FUSE_USER --jvm-opts '$app_container_jvm_props' $container"
     fi
-    result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --resolver localip --path $container_path  $profile_args --version $version --user $FUSE_USER --password $password --jvm-opts '$app_container_jvm_props' $container"`
+    result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --resolver localip --path $container_path  $profile_args --version $version --user $FUSE_USER --jvm-opts '$app_container_jvm_props' $container"`
     echo -e "$result"
     if [[ $result == Error* ]]; then
       echo "Error creating container: $container"
       break;
     fi
     
+    # remove the zip file that was transferred
     remove_command="ssh $FUSE_USER@$server rm -f $container_path/$container/$ZIP_FILENAME"
-    echo "Removing fabric zip file: $remove_command"
-    
+    echo "Removing fabric zip file: $remove_command"    
     $remove_command
     
+    # let the container completely start before moving on to the next
     waitUntilProvisioned $container
     
   done
-  echo "Adding $ensemble_list to the ensemble"
-  if [ $DEBUG ]; then
-    echo $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
-  fi
-  $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
-
-  echo "Waiting for provisioning"
-  $FUSE_CLIENT_SCRIPT fabric:wait-for-provisioning
   
+  # add containers to ensemble if told not a simple managed instance
+  if [ "$ensemble_container" == "y" ]; then
+    echo "Adding $ensemble_list to the ensemble"
+    if [ $DEBUG ]; then
+      echo $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+    fi
+    $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+
+    echo "Waiting for provisioning"
+    $FUSE_CLIENT_SCRIPT fabric:wait-for-provisioning
+  fi
+  
+  # Display all the containers to the user
   echo "Current containers:"
   $FUSE_CLIENT_SCRIPT "fabric:container-list $container_name_prefix"
-  
 }
 
 stopContainer(){
@@ -852,7 +905,7 @@ containerConnect(){
   
   while [ $run_again == "y" ];
   do
-    echo "Enter command to run:"
+    echo "Enter Fuse command to run:"
     read command
     
     if [ -z "$command" ]; then
@@ -1368,7 +1421,7 @@ sshToContainer(){
   
   while [ $run_again == "y" ];
   do
-    echo "Enter command to run:"
+    echo "Enter Bash command to run:"
     read command
     
     if [ -z "$command" ]; then
