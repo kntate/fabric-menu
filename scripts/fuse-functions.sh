@@ -763,7 +763,6 @@ removeApp(){
   chooseContainer
   
   if [ -z "$chosen_container" ]; then
-    echo "Error, no container choosen"
     return
   fi
   
@@ -771,7 +770,7 @@ removeApp(){
   full_ensemble_list=`$FUSE_CLIENT_SCRIPT ensemble-list | grep -vP "\x1b\x5b\x6d"`
   
   if [ $chosen_container == "ALL" ]; then
-    ensemble_list=""
+    ensemble_remove_list=""
     remove_from_ensemble_count=0
     for i in "${container_array[@]}"
     do
@@ -779,7 +778,7 @@ removeApp(){
       # see if the full ensemble list contains this container
       ensemble_member=`echo -e "$full_ensemble_list" | egrep "^${i}$"`
       if [ -n "$ensemble_member" ]; then
-	ensemble_list="$ensemble_list $i"
+	ensemble_remove_list="$ensemble_remove_list $i"
 	remove_from_ensemble_count=$[$remove_from_ensemble_count + 1]
       fi
     done
@@ -788,23 +787,25 @@ removeApp(){
     getEnsembleCount
     new_ensemble_count=$[${ensemble_count}-${remove_from_ensemble_count}]
     if [ $new_ensemble_count -eq 2 ]; then
-      echo "Error, the environment cannot contain just 2 Zookeeper Registry members. Container cannot be removed."
-      echo "Current list of Zookeeper Registry members"
+      echo "Error, the Zookeeper Registry Group cannot contain just 2 containers. Container cannot be removed."
+      echo "Removing the following containers from the Zookeeper Registry group would bring the total to 2:"
+      echo -e "\t$ensemble_remove_list"
+      echo "Current list of Zookeeper Registry members:"
       $FUSE_CLIENT_SCRIPT fabric:ensemble-list
       return
     fi
     
     # Only perform ensemble-remove if there are ensemble containers
-    if [ -z "$ensemble_list" ]; then
+    if [ -z "$ensemble_remove_list" ]; then
       echo "All chosen containers are managed containers"
     else
       # remove the containers from the ensemble
       echo "Removing the following member containers from Zookeeper Registry Group:"
-      echo -e "\t$ensemble_list"
+      echo -e "\t$ensemble_remove_list"
       if [ $DEBUG = true ]; then
-	echo "$FUSE_CLIENT_SCRIPT fabric:ensemble-remove $ensemble_list"    
+	echo "$FUSE_CLIENT_SCRIPT fabric:ensemble-remove $ensemble_remove_list"    
       fi
-      $FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $ensemble_list"
+      $FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $ensemble_remove_list"
     fi
     
     # now delete all of the containers
@@ -825,7 +826,7 @@ removeApp(){
       # To add to ensemble make sure there will be at least two containers
       num_containers=$(($ensemble_count - 1))
       if [ $num_containers -eq 2 ]; then
-	echo "Error, the environment cannot contain just 2 Zookeeper Registry members. Container cannot be removed."
+	echo "Error, the Zookeeper Registry Group cannot contain just 2 containers. Container \"$chosen_container\" cannot be removed."
 	echo "Current list of Zookeeper Registry members"
 	$FUSE_CLIENT_SCRIPT fabric:ensemble-list
 	return
