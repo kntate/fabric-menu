@@ -676,7 +676,7 @@ createContainers(){
     fi
     result=`$FUSE_CLIENT_SCRIPT "fabric:container-create-ssh --host $server --resolver localip --path $container_path  $profile_args --version $version --user $FUSE_USER --jvm-opts '$app_container_jvm_props' $container"`
     echo -e "$result"
-    if [[ $result == Error* ]]; then
+    if [[ "$result" == *Error* ]]; then
       echo "Error creating container: $container"
       break;
     fi
