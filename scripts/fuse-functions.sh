@@ -565,7 +565,7 @@ getEnsembleCount(){
 
 installApp(){
   
-  echo "Should the containers also be Zookeeper Registry containers? [y/n]"
+  echo "Should the containers also be Zookeeper Registry member containers? [y/n]"
   echo -e "\tDefault: n"
   read ensemble_container
   ensemble_container=${ensemble_container:-n}
@@ -579,7 +579,7 @@ createContainers(){
   
    if [ "$ensemble_container" == "y" ]; then
       profile_args="$ensemble_profile_args"
-      echo "How many Zookeeper Registry containers (instances) should be created?"
+      echo "How many Zookeeper Registry member containers (instances) should be created?"
    else
       profile_args="$managed_profile_args"
       echo "How many Fabric managed application containers (instances) should be created?"
@@ -591,8 +591,8 @@ createContainers(){
     getEnsembleCount
     num_ensemble_containers=$(($ensemble_count + $application_count))
     if [ $num_ensemble_containers -lt 3 ]; then
-      echo "Error, there must be at least three Zookeeper Registry containers (instances)."
-      echo "Adding $application_count Zookeeper Registry containers would give a total of $num_ensemble_containers Zookeeper Registry containers"
+      echo "Error, there must be at least three Zookeeper Registry member containers (instances)."
+      echo "Adding $application_count Zookeeper Registry member containers would give a total of $num_ensemble_containers Zookeeper Registry member containers"
       echo "Please try again with more containers."
       createContainers
       return
@@ -614,7 +614,7 @@ createContainers(){
 	echo "Proceeding with even number of ensemble containers."
       fi
     fi
-    echo "Will add $application_count instances to the list of Zookeeper Registry containers"
+    echo "Will add $application_count instances to the list of Zookeeper Registry member containers"
   else
     echo "Will create $application_count managed instances."
   fi
@@ -709,7 +709,7 @@ createContainers(){
   
   # display the updated ensemble list if the containers were added to the ensemble
   if [ "$ensemble_container" == "y" ]; then
-    echo "Current list of Zookeeper Registry containers:"
+    echo "Current list of Zookeeper Registry member containers:"
     $FUSE_CLIENT_SCRIPT ensemble-list
   fi
 }
@@ -766,13 +766,35 @@ removeApp(){
     return
   fi
   
+  # list of all the ensemble members, each on its own line
+  full_ensemble_list=`$FUSE_CLIENT_SCRIPT ensemble-list | grep -vP "\x1b\x5b\x6d"`
+  
   if [ $chosen_container == "ALL" ]; then
-    all_containers=`echo "${container_array[@]}"`
-    echo "Removing container $all_containers from ensemble"
-    if [ $DEBUG = true ]; then
-      echo "$FUSE_CLIENT_SCRIPT fabric:ensemble-remove $all_containers"    
+    ensemble_list=""
+    for i in "${container_array[@]}"
+    do
+      :
+      # see if the full ensemble list contains this container
+      ensemble_member=`echo -e "$full_ensemble_list" | egrep "^${i}$"`
+      if [ -n "$ensemble_member" ]; then
+	ensemble_list="$ensemble_list $i"
+      fi
+    done
+    
+    # Only perform ensemble-remove if there are ensemble containers
+    if [ -z "$ensemble_list" ]; then
+      echo "All chosen containers are managed containers"
+    else
+      # remove the containers from the ensemble
+      echo "Removing the following member containers from Zookeeper Registry Group:"
+      echo -e "\t$ensemble_list"
+      if [ $DEBUG = true ]; then
+	echo "$FUSE_CLIENT_SCRIPT fabric:ensemble-remove $ensemble_list"    
+      fi
+      $FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $ensemble_list"
     fi
-    $FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $all_containers"
+    
+    # now delete all of the containers
     for i in "${container_array[@]}"
     do
       :
@@ -782,24 +804,32 @@ removeApp(){
     done        
   else
   
-    # get list of containers that start with application_env_
-    result=`$FUSE_CLIENT_SCRIPT container-list $container_name_prefix | grep -vP "\x1b\x5b\x6d" | grep -v "provision status" | awk '{print $1}' | grep -vP "\x1b\x5b\x6d" `
-    containers_array=( $result )
-    last_container=`echo $result | rev | cut -d ' ' -f1 | rev`
-    last_index=${last_container:$container_name_prefix_length}
+    # see if the full ensemble list contains this container
+    ensemble_member=`echo -e "$full_ensemble_list" | egrep "^${chosen_container}$"`
+    if [ -n "$ensemble_member" ]; then
+      getEnsembleCount
     
-    # To add to ensemble make sure there will be at least two containers
-    num_containers=$(($last_index - 1))
-    if [ $num_containers -lt 2 ]; then
-      echo "Error, there must be at least two application containers (instances) in the environment. Container cannot be removed."
-      return
+      # To add to ensemble make sure there will be at least two containers
+      num_containers=$(($ensemble_count - 1))
+      if [ $num_containers -eq 2 ]; then
+	echo "Error, there environment cannot contain just 2 Zookeeper Registry members. Container cannot be removed."
+	echo "Current list of Zookeeper Registry members"
+	$FUSE_CLIENT_SCRIPT fabric:ensemble-list
+	return
+      fi
+      
+      # Remove the container from the ensemble
+      echo "Removing member container $chosen_container from Zookeeper Registry Group"
+      if [ $DEBUG = true ]; then
+	echo "$FUSE_CLIENT_SCRIPT \"fabric:ensemble-remove --force $chosen_container\""
+      fi
+      $FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $chosen_container"
+      
+    else
+      echo "Container $chosen_container is not a member of the Zookeeper Registry Group."
     fi
   
-    echo "Removing container $chosen_container from ensemble"
-    if [ $DEBUG = true ]; then
-      echo "$FUSE_CLIENT_SCRIPT fabric:ensemble-remove $chosen_container"    
-    fi
-    $FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $chosen_container"
+    #Delete the container
     removeContainer $chosen_container  
   fi  
 }
