@@ -60,7 +60,7 @@ do
 	getAllContainerList
 	number_containers=${#container_array[@]}
 	if [ $number_containers -lt 1 ]; then
-	  echo "Error, no applications installed for application $chosen_application and environment $chosen_environment. Use installApp to install first."
+	  echo "Error, no containers (instances) installed for application $chosen_application in environment $chosen_environment. Use installApp to install first."
 	else
 	  admin_title="\E[0;33;41m\033[1m#### Main Menu - $chosen_application - $chosen_environment > Administration ####\033[0m"
 	  echo -e "\n${admin_title}\n"
