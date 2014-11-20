@@ -489,6 +489,9 @@ chooseContainer(){
   if [ $index == 0 ]; then
     echo "No containers found for application $chosen_application in environment $chosen_environment."
     chosen_container=""
+  elif [ $index == 1 ];then
+    chosen_container="${choice_list[0]}"
+    echo "Only one container found, using container $chosen_container"
   else
     
     # Add all choice if there is more than one option and told to include the all option
@@ -770,7 +773,7 @@ removeApp(){
   
   # list of all the ensemble members, each on its own line
   full_ensemble_list=`$FUSE_CLIENT_SCRIPT ensemble-list | grep -vP "\x1b\x5b\x6d"`
-  
+      
   if [ $chosen_container == "ALL" ]; then
     ensemble_remove_list=""
     remove_from_ensemble_count=0
@@ -819,6 +822,15 @@ removeApp(){
       fi
     done        
   else
+    echo "Are you sure you want to delete container \"${chosen_container}\"? [y/n]"
+    echo -e "\tDefault: y"
+    read confirm
+    confirm=${confirm:-y}
+    
+    if [ "$confirm" != "y" ]; then
+      echo "Told not to delete ${chosen_container}."
+      return
+    fi
   
     # see if the full ensemble list contains this container
     ensemble_member=`echo -e "$full_ensemble_list" | egrep "^${chosen_container}$"`
