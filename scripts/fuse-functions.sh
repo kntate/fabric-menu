@@ -698,11 +698,20 @@ createContainers(){
   
   # add containers to ensemble if told not a simple managed instance
   if [ "$ensemble_container" == "y" ]; then
-    echo "Adding $ensemble_list to the ensemble"
+    echo "Adding $ensemble_list to the Zookeeper Registry Group"
     if [ $DEBUG ]; then
-      echo $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+      echo "$FUSE_CLIENT_SCRIPT \"fabric:ensemble-add -f $ensemble_list\""
     fi
-    $FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"
+    ensemble_add_result=`$FUSE_CLIENT_SCRIPT "fabric:ensemble-add -f $ensemble_list"`
+    echo -e "$ensemble_add_result"
+    
+    if [[ "$ensemble_add_result" == *Error* ]] || [[ "$ensemble_add_result" == *failed* ]]; then
+      echo "Error adding $ensemble_list to the Zookeeper Registry Group."
+      echo "Containers $ensemble_list have been created but not joined to the Zookeeper Registry Group."
+      echo "To later add containers run the following command from the Fuse Command line:"
+      echo -e "\t$FUSE_CLIENT_SCRIPT \"fabric:ensemble-add -f $ensemble_list\""
+      return;
+    fi
 
     echo "Waiting for provisioning"
     $FUSE_CLIENT_SCRIPT fabric:wait-for-provisioning
