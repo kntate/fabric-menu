@@ -489,7 +489,7 @@ chooseContainer(){
   if [ $index == 0 ]; then
     echo "No containers found for application $chosen_application in environment $chosen_environment."
     chosen_container=""
-  elif [ $index == 1 ];then
+  elif [ $index == 1 ];then # no need for select menu if only one container
     chosen_container="${choice_list[0]}"
     echo "Only one container found, using container $chosen_container"
   else
@@ -822,8 +822,7 @@ removeApp(){
       fi
     done        
   else
-    echo "Are you sure you want to delete container \"${chosen_container}\"? [y/n]"
-    echo -e "\tDefault: y"
+    echo "Are you sure you want to delete container \"${chosen_container}\"? (Default: y) [y/n]"
     read confirm
     confirm=${confirm:-y}
     
@@ -1067,18 +1066,33 @@ removeProfile(){
   else
       output=`$FUSE_CLIENT_SCRIPT "container-info $chosen_container" | grep "Profiles:" | cut -d ":" -f2`
       profile_array=($output)
-      echo "Enter number of the desired profile to remove: "
-      profile=""
-      while [ -z "$profile" ];
-      do
-	select profile in "${profile_array[@]}"
+      num_profiles="${#profile_array[@]}"
+      if [ $num_profiles -eq 1 ]; then
+	echo "Only one profile associated with container \"${chosen_container}\", are you sure you want to proceed?"
+	echo "Warning, do so will revert the container to the \"default\" profile"
+	echo "Do you want to proceed? (Default: n) [y/n]"
+	read proceed
+	proceed=${proceed:-n}
+	
+	if [ $proceed == "n" ]; then
+	  echo "Exiting profile remove."
+	  return
+	fi
+	profile="${profile_array[0]}"
+      else
+	echo "Enter number of the desired profile to remove: "
+	profile=""
+	while [ -z "$profile" ];
 	do
-	  if [ -z "$profile" ]; then
-	    echo "Invalid option, try again."
-	  fi  
-	  break
-	done      
-      done
+	  select profile in "${profile_array[@]}"
+	  do
+	    if [ -z "$profile" ]; then
+	      echo "Invalid option, try again."
+	    fi  
+	    break
+	  done      
+	done
+      fi
       echo "Removing profile: $profile"
       removeProfileFromContainer $chosen_container $profile
   fi
