@@ -683,9 +683,7 @@ createContainers(){
       echo "Error creating container: $container"
       break;
     fi
-    
-    
-    
+        
     # remove the zip file that was transferred
     remove_command="ssh $FUSE_USER@$server rm -f $container_path/$container/$ZIP_FILENAME"
     echo "Removing fabric zip file: $remove_command"    
@@ -817,9 +815,16 @@ removeApp(){
       echo "Removing the following member containers from Zookeeper Registry Group:"
       echo -e "\t$ensemble_remove_list"
       if [ $DEBUG = true ]; then
-	echo "$FUSE_CLIENT_SCRIPT fabric:ensemble-remove $ensemble_remove_list"    
+	echo "$FUSE_CLIENT_SCRIPT \"fabric:ensemble-remove $ensemble_remove_list\""    
       fi
-      $FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $ensemble_remove_list"
+      ensemble_remove_result=`$FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $ensemble_remove_list"`
+      echo -e "$ensemble_remove_result"
+      if [[ "$ensemble_remove_result" == *Error* ]] || [[ "$ensemble_remove_result" == *failed* ]]; then
+	echo "Error removing $ensemble_list to the Zookeeper Registry Group."
+	echo "Containers will not be deleted."
+	echo "Contact a system adminstrator to fix the environment and then try again."
+	return
+      fi
     fi
     
     # now delete all of the containers
@@ -859,7 +864,14 @@ removeApp(){
       if [ $DEBUG = true ]; then
 	echo "$FUSE_CLIENT_SCRIPT \"fabric:ensemble-remove --force $chosen_container\""
       fi
-      $FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $chosen_container"
+      ensemble_remove_result=`$FUSE_CLIENT_SCRIPT "fabric:ensemble-remove --force $chosen_container"`
+      echo -e "$ensemble_remove_result"
+      if [[ "$ensemble_remove_result" == *Error* ]] || [[ "$ensemble_remove_result" == *failed* ]]; then
+	echo "Error removing $chosen_container from the Zookeeper Registry Group."
+	echo "Container will not be deleted."
+	echo "Contact a system adminstrator to fix the environment and then try again."
+	return
+      fi
       
     else
       echo "Container $chosen_container is not a member of the Zookeeper Registry Group."
@@ -946,7 +958,7 @@ startContainer(){
 startupContainer(){
   
   container=$1
-  $FUSE_CLIENT_SCRIPT container-start $container
+  $FUSE_CLIENT_SCRIPT "container-start $container"
   
   i="1"
   
