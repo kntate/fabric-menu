@@ -1170,7 +1170,6 @@ camelRouteInfo(){
       done
     done
     echo "Getting info for route: $route"
-    $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-list
     $CONTAINER_CONNECT_COMMAND $chosen_container camel:route-info $route
   else
     echo "No routes found in container"
