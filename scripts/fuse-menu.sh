@@ -3,16 +3,17 @@
 BaseDir=${0%/*}
 DATE=`date +%m%d%Y-%H%M%S`
 LOGS=${BaseDir}/../logs
+PROPERTIES="${BaseDir}/../properties"
 EAP_Scripts=${BaseDir};
 
+application_properties_file="$PROPERTIES/fuse-applications.properties"
+install_properties_file="$PROPERTIES/fuse-install.properties"
+
 # Source the properties
-. $BaseDir/../properties/fuse-install.properties
+. $install_properties_file
 
 # Source the functions
 . $BaseDir/fuse-functions.sh
-
-application_properties_file="${BaseDir}/../properties/fuse-applications.properties"
-install_properties_file="${BaseDir}/../properties/fuse-install.properties"
 
 trap bashtrap EXIT
 bashtrap(){

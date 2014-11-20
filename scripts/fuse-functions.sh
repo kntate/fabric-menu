@@ -7,6 +7,17 @@ FUSE_BIN=$FUSE_HOME/bin
 FUSE_CLIENT_SCRIPT_PATH=$FUSE_BIN/client
 FUSE_USER=`whoami`
 
+# Make sure the properties file exists
+USER_PROPS_FILE="${PROPERTIES}/${FUSE_USER}-fuse-install.properties"
+if [ ! -f "$USER_PROPS_FILE" ]; then
+  echo "Error, user properties file not found at $USER_PROPS_FILE"
+  echo "Create file and try again."
+  exit 1
+fi
+
+# source the users properties file
+. $USER_PROPS_FILE
+
 ZIP_FILENAME="fabric8-karaf-1.0.0.redhat-379.zip"
 
 hidden_password="******"
