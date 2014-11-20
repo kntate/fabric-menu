@@ -7,7 +7,7 @@ PROPERTIES="${BaseDir}/../properties"
 EAP_Scripts=${BaseDir};
 
 application_properties_file="$PROPERTIES/fuse-applications.properties"
-install_properties_file="$PROPERTIES/fuse-install.properties"
+install_properties_file="$PROPERTIES/global-fuse-install.properties"
 
 # Source the properties
 . $install_properties_file

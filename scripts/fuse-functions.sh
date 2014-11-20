@@ -224,7 +224,7 @@ removeEnvironment(){
     
     # strip all leading/trailing whitespace
     available_environments=`echo $available_environments | sed -e 's/^ *//' -e 's/ *$//'`
-    sed -i "s/$old_available_environments/$available_environments/" $install_properties_file
+    sed -i "s/$old_available_environments/$available_environments/" $USER_PROPS_FILE
   else
     echo "Environment $remove_environment will not be deleted"
   fi
@@ -252,7 +252,7 @@ newEnvironment(){
     echo "Adding environment $environment"
     old_available_environments=$available_environments
     available_environments="$available_environments $environment"
-    sed -i "s/$old_available_environments/$available_environments/" $install_properties_file
+    sed -i "s/$old_available_environments/$available_environments/" $USER_PROPS_FILE
   fi
 }
 
