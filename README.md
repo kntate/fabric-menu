@@ -144,7 +144,7 @@ Will perform a thread dump of the Fuse Java process of the selected instance and
 
 ######instanceConnect
 
-Will run the input command against the Fuse Command Console of the selected container (instance). For a reference of available commands see [Fuse Documentation](https://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse/6.1/html/Console_Reference/files/ConsoleRefIntro.html)
+Will run the input command against the Fuse Command Console of the selected container (instance). For a reference of available commands see [Fuse Command Console Documentation](https://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse/6.1/html/Console_Reference/files/ConsoleRefIntro.html).
 
 Camel
 -----------
