@@ -1013,6 +1013,9 @@ instanceConnect(){
   
   while [ $run_again == "y" ];
   do
+    echo "This option will run the input command against the Fuse Command Console against the selected container (instance)."
+    echo "For a reference of available commands see Fuse documentation:" 
+    echo -e "\thttps://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse/6.1/html/Console_Reference/files/ConsoleRefIntro.html"
     echo "Enter Fuse command to run:"
     read command
     
