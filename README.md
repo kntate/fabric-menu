@@ -82,9 +82,73 @@ Option used to install an instance of the application to the selected environmen
 
 When installing an application instance the user has the option to either include the instance in the Zookeeper Registry Group or to keep the instance as a simple Fabric managed instance. It is recommended that the instance be a simple managed instance unless there is a driving reason for it to be in the Zookeeper Registry Group. The Zookeeper Registry Group is the set of containers that form the quorem for tracking Fabric configuration. Most instances should just be a simple managed instance.
 
-The name of the instance will be in the format of [application]\_[enviornment]\_# where # is the next number in the sequence of instances or 1 if it is the first instance in the enviornment.
+The name of the instance will be in the format of [application]\_[enviornment]\_# where # is the next number in the sequence of instances or 1 if it is the first instance for the application in the given enviornment.
 
 The user will be prompted for the hostname of the server to install each instance on. Fabric will then be used to install an instance container via ssh onto the selected host with the user running the script. Therefore, the Fabric server must have ssh keys setup to the selected host.
 
 removeInstance
 -----------
+
+Option used to remove an instance (or all instances) of the given application in the selected enviornment. Will not only remove the instance from the Fabric Zookeeper Registry but will also delete all files on the server hosting the instance.
+
+The user will be prompted with a select menu that includes all instances along with an all option.
+
+Administration
+-----------
+
+Option that prompts the user with a new menu of adminstration tasks
+
+######sshToInstanceUser
+
+Option that allows the user to select an instance server to run a bash command against.
+		  	
+######instanceUpgrade
+
+Option that allows a user to upgrade the instance container version on a selected instance or the entire set of instances in the selected application/enviornment. For upgrading a single instance the user will be prompted for all available versions more recent than the current version, however for upgrading all instance containers the user must enter the desired version.
+
+######instanceRollback
+
+Option that allows a user to rollback the instance container version on a selected instance or the entire set of instances in the selected application/enviornment. For rolling back a single instance the user will be prompted for all available versions older recent than the current version, however for upgrading all instance containers the user must enter the desired version.
+
+######startInstance
+
+Will start the Fuse process associated with the application instance. An all option is also included.
+
+######stopInstance
+
+Will stop the Fuse process associated with the application instance. An all option is also included.
+
+######addProfile
+
+Adds a Fabric profile to the selected instance.
+
+######environmentInfo
+
+Gives an overview of the instance containers for the application in the selected environment.
+
+######removeProfile
+
+Removes a Fabric profile to the selected instance.
+
+######instanceStatus
+
+Gives the status and instance overview of the selected instance or all instances in the enviornment.
+
+######activeMQStats
+
+Returns basic ActiveMQ stats for the selected container.
+
+######threadDump
+
+Will perform a thread dump of the Fuse Java process and write the output to the user supplied location.
+
+######instanceConnect
+
+Camel
+-----------
+
+######camelRouteStart
+
+######camelRouteStop
+
+######camelRouteInfo
