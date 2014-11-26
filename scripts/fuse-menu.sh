@@ -65,32 +65,32 @@ do
 	else
 	  admin_title="\E[0;33;41m\033[1m#### Main Menu - $chosen_application - $chosen_environment > Administration ####\033[0m"
 	  echo -e "\n${admin_title}\n"
-	  select admin_menu in "sshToContainer" "containerUpgrade" "containerRollback" "startContainer" "stopContainer" "addProfile" "removeProfile" "environmentInfo" "containerStatus" "camel" "activeMQStats" "threadDump" "containerConnect" "rootMenu"
+	  select admin_menu in "sshToInstanceUser" "instanceUpgrade" "instanceRollback" "startInstance" "stopInstance" "addProfile" "removeProfile" "environmentInfo" "instanceStatus" "camel" "activeMQStats" "threadDump" "instanceConnect" "rootMenu"
 	  do
 	    echo "$admin_menu";
 	    case $admin_menu in	    
-	    "sshToContainer")
-		  sshToContainer
+	    "sshToInstanceUser")
+		  sshToInstanceUser
 		  REPLY=""
 		  echo -e "\n${admin_title}\n"
 		  ;;	
-	      "containerUpgrade")
-		  containerUpgrade
+	      "instanceUpgrade")
+		  instanceUpgrade
 		  REPLY=""
 		  echo -e "\n${admin_title}\n"
 		  ;;	
-	      "containerRollback")
-		  containerRollback
+	      "instanceRollback")
+		  instanceRollback
 		  REPLY=""
 		  echo -e "\n${admin_title}\n"
 		  ;;
-	      "startContainer")
-		  startContainer
+	      "startInstance")
+		  startInstance
 		  REPLY=""
 		  echo -e "\n${admin_title}\n"
 		  ;;	
-	      "stopContainer")
-		  stopContainer
+	      "stopInstance")
+		  stopInstance
 		  REPLY=""
 		  echo -e "\n${admin_title}\n"
 		  ;;		
@@ -109,8 +109,8 @@ do
 		  REPLY=""
 		  echo -e "\n${admin_title}\n"
 		  ;;	
-	      "containerStatus")
-		  containerStatus
+	      "instanceStatus")
+		  instanceStatus
 		  REPLY=""
 		  echo -e "\n${admin_title}\n"
 		  ;;		
@@ -157,8 +157,8 @@ do
 		  REPLY=""
 		  echo -e "\n${admin_title}\n"
 		  ;;			
-	      "containerConnect")
-		  containerConnect
+	      "instanceConnect")
+		  instanceConnect
 		  REPLY=""
 		  echo -e "\n${admin_title}\n"
 		  ;;	

@@ -546,7 +546,7 @@ getAmqStatsForContainer(){
   fi
 }
 
-containerStatus(){
+instanceStatus(){
   echo "Include feature stats? (Default:n) [y/n]"
   read includeFeatures  
   includeFeatures=${includeFeatures:n}
@@ -737,7 +737,7 @@ createContainers(){
   fi
 }
 
-stopContainer(){
+stopInstance(){
   
   chooseContainer
   
@@ -1006,7 +1006,7 @@ startupContainer(){
   
 }
 
-containerConnect(){
+instanceConnect(){
   chooseContainer "exclude_all_option"
   
   run_again="y"
@@ -1245,7 +1245,7 @@ camelRouteStop(){
   fi
 }
 
-containerUpgrade(){
+instanceUpgrade(){
 
   chooseContainer
   
@@ -1406,7 +1406,7 @@ upgradeSingleContainer(){
   fi
 }
 
-containerRollback(){
+instanceRollback(){
 
   chooseContainer
   
@@ -1530,7 +1530,7 @@ environmentInfo(){
   fi
 }
 
-sshToContainer(){
+sshToInstanceUser(){
   chooseContainer "exclude_all_option"
   
   if [ -z "$chosen_container" ]; then
