@@ -140,9 +140,11 @@ Returns basic ActiveMQ stats for the selected container.
 
 ######threadDump
 
-Will perform a thread dump of the Fuse Java process and write the output to the user supplied location.
+Will perform a thread dump of the Fuse Java process of the selected instance and write the output to the user supplied location.
 
 ######instanceConnect
+
+Will run the input command against the Fuse Command Console of the selected container (instance). For a reference of available commands see Fuse  https://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse/6.1/html/Console_Reference/files/ConsoleRefIntro.html
 
 Camel
 -----------
