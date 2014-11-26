@@ -567,7 +567,7 @@ instanceStatus(){
 getContainerStats(){
   $FUSE_CLIENT_SCRIPT fabric:container-info $1
   
-  if [ $includeFeatures == "y" ]; then
+  if [ "$includeFeatures" == "y" ]; then
      $CONTAINER_CONNECT_COMMAND "$1 features:list -i"
   fi
 }
@@ -577,7 +577,7 @@ getEnsembleCount(){
  ensemble_count=`$FUSE_CLIENT_SCRIPT ensemble-list | grep -v "\[id\]" | grep -vP "\x1b\x5b\x6d" | wc -l`
 }
 
-installApp(){
+installInstance(){
   
   echo "Should the containers also be Zookeeper Registry member containers? [y/n]"
   echo -e "\tDefault: n"
@@ -781,7 +781,7 @@ stopInstance(){
   leave_star_on_root=""
 }
 
-removeApp(){
+removeInstance(){
 
   chooseContainer
   
@@ -948,7 +948,7 @@ shutdownContainer(){
   fi
 }
 
-startContainer(){
+startInstance(){
   chooseContainer
   
   if [ -z "$chosen_container" ]; then
@@ -1013,7 +1013,7 @@ instanceConnect(){
   
   while [ $run_again == "y" ];
   do
-    echo "This option will run the input command against the Fuse Command Console against the selected container (instance)."
+    echo "This option will run the input command against the Fuse Command Console of the selected container (instance)."
     echo "For a reference of available commands see Fuse documentation:" 
     echo -e "\thttps://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse/6.1/html/Console_Reference/files/ConsoleRefIntro.html"
     echo "Enter Fuse command to run:"
