@@ -149,8 +149,16 @@ Will run the input command against the Fuse Command Console of the selected cont
 Camel
 -----------
 
+Menu options to manage Camel routes deployed on the application instance.
+
 ######camelRouteStart
+
+Will start the selected Camel route on the selected application instance.
 
 ######camelRouteStop
 
+Will stop the selected Camel route on the selected application instance.
+
 ######camelRouteInfo
+
+Will return basic Camel stats and route info on the selected Camel route on the selected application instance.
