@@ -3,7 +3,7 @@ fusedeploy
 
 Fuse Fabric menu bash scripts used for managing JBoss Fuse environment for CenturyLink.
 
-Initial Setup
+Initial Configuration
 -----------
 
 There are several configuration files that define how the script work. Below is a description of each file.
@@ -25,10 +25,10 @@ Connecting to Fuse
 
 Connection info to the Fuse server is found in the [user]-fuse-install.properties file. If the following properties are not found in this file or if the Fuse connection cannot be created then the script will prompt for the connection details.
 
-ENSEMBLE_SERVER_HOST=vlmdcdfab100.dev.intranet
-ENSEMBLE_SERVER_USER=admin
-ENSEMBLE_SERVER_PASSWORD=admin
-ENSEMBLE_SERVER_PORT=8101
+    ENSEMBLE_SERVER_HOST=vlmdcdfab100.dev.intranet
+    ENSEMBLE_SERVER_USER=admin
+    ENSEMBLE_SERVER_PASSWORD=admin
+    ENSEMBLE_SERVER_PORT=8101
 
 Creating the Fabric Instance
 -----------
