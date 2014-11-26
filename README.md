@@ -82,7 +82,7 @@ Option used to install an instance of the application to the selected environmen
 
 When installing an application instance the user has the option to either include the instance in the Zookeeper Registry Group or to keep the instance as a simple Fabric managed instance. It is recommended that the instance be a simple managed instance unless there is a driving reason for it to be in the Zookeeper Registry Group. The Zookeeper Registry Group is the set of containers that form the quorem for tracking Fabric configuration. Most instances should just be a simple managed instance.
 
-The name of the instance will be in the format of <application>_<enviornment>_# where # is the next number in the sequence of instances or 1 if it is the first instance in the enviornment.
+The name of the instance will be in the format of [application]_[enviornment]_# where # is the next number in the sequence of instances or 1 if it is the first instance in the enviornment.
 
 The user will be prompted for the hostname of the server to install each instance on. Fabric will then be used to install an instance container via ssh onto the selected host with the user running the script. Therefore, the Fabric server must have ssh keys setup to the selected host.
 
